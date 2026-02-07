@@ -169,7 +169,7 @@ pmon:
 
 ## Documentation
 
-- [API Documentation](https://eq.systems/platform/equser)
+- [API Documentation](https://equser.eq.systems)
 - [Changelog](CHANGELOG.md)
 
 ## License

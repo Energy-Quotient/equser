@@ -98,7 +98,7 @@ equser = "equser.cli:main"
 
 [project.urls]
 Homepage = "https://eq.systems"
-Documentation = "https://eq.systems/platform/equser"
+Documentation = "https://equser.eq.systems"
 Repository = "https://github.com/Energy-Quotient/equser"
 Changelog = "https://github.com/Energy-Quotient/equser/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Energy-Quotient/equser/issues"
