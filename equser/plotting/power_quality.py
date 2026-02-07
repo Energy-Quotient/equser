@@ -7,13 +7,14 @@ For use in JupyterLab and custom analysis scripts.
 Requires the ``[analysis]`` extra (matplotlib, numpy).
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdate
-import numpy as np
-import pyarrow.parquet as pq
-from pathlib import Path
 import logging
-from typing import Set, Optional
+from pathlib import Path
+
+import matplotlib.dates as mdate
+import matplotlib.pyplot as plt
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from equser.data.cpow import NEUTRAL_CT_RATIO
 
@@ -34,22 +35,20 @@ COLOR_SCHEMES = {
     'AWATT': '#000000',
     'BWATT': '#FF0000',
     'CWATT': '#0000FF',
-
     'AFVRMS': '#999999',  # Light gray
     'BFVRMS': '#FFB6B6',  # Light red
     'CFVRMS': '#B6B6FF',  # Light blue
     'AFIRMS': '#999999',
     'BFIRMS': '#FFB6B6',
     'CFIRMS': '#B6B6FF',
-    'NIRMS': '#CCCCCC',   # Very light gray
+    'NIRMS': '#CCCCCC',  # Very light gray
     'AFWATT': '#999999',
     'BFWATT': '#FFB6B6',
     'CFWATT': '#B6B6FF',
     'AFVAR': '#CCCCCC',
-    'BFVAR': '#FFD6D6',   # Very light red
-    'CFVAR': '#D6D6FF',   # Very light blue
-    'FREQ': '#000000',     # Frequency - special color
-
+    'BFVAR': '#FFD6D6',  # Very light red
+    'CFVAR': '#D6D6FF',  # Very light blue
+    'FREQ': '#000000',  # Frequency - special color
     # Waveform colors
     'VA': '#000000',
     'VB': '#FF0000',
@@ -61,30 +60,38 @@ COLOR_SCHEMES = {
 }
 
 # Channel groupings for power monitoring
-VOLTAGE_CHANNELS = [
-    'AVRMS', 'BVRMS', 'CVRMS',
-    'AFVRMS', 'BFVRMS', 'CFVRMS'
-]
+VOLTAGE_CHANNELS = ['AVRMS', 'BVRMS', 'CVRMS', 'AFVRMS', 'BFVRMS', 'CFVRMS']
 
-CURRENT_CHANNELS = [
-    'AIRMS', 'BIRMS', 'CIRMS', 'NIRMS',
-    'AFIRMS', 'BFIRMS', 'CFIRMS'
-]
+CURRENT_CHANNELS = ['AIRMS', 'BIRMS', 'CIRMS', 'NIRMS', 'AFIRMS', 'BFIRMS', 'CFIRMS']
 
 POWER_CHANNELS = [
-    'AWATT', 'BWATT', 'CWATT',
-    'AFWATT', 'BFWATT', 'CFWATT',
-    'AFVAR', 'BFVAR', 'CFVAR'
+    'AWATT',
+    'BWATT',
+    'CWATT',
+    'AFWATT',
+    'BFWATT',
+    'CFWATT',
+    'AFVAR',
+    'BFVAR',
+    'CFVAR',
 ]
 
 FREQ_CHANNELS = ['FREQ']
 
 DEFAULT_VISIBLE_CHANNELS = {
-    'AVRMS', 'BVRMS', 'CVRMS',
-    'AIRMS', 'BIRMS', 'CIRMS',
-    'AWATT', 'BWATT', 'CWATT',
-    'AFVAR', 'BFVAR', 'CFVAR',
-    'FREQ'
+    'AVRMS',
+    'BVRMS',
+    'CVRMS',
+    'AIRMS',
+    'BIRMS',
+    'CIRMS',
+    'AWATT',
+    'BWATT',
+    'CWATT',
+    'AFVAR',
+    'BFVAR',
+    'CFVAR',
+    'FREQ',
 }
 
 # Waveform channel groupings
@@ -95,7 +102,11 @@ WAVEFORM_CURRENT_CHANNELS = ['IA', 'IB', 'IC', 'IN']
 class PowerMonitorPlotter:
     """Generates static matplotlib plots from power monitoring data"""
 
-    def __init__(self, visible_channels: Set[str] = DEFAULT_VISIBLE_CHANNELS, output_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        visible_channels: set[str] = DEFAULT_VISIBLE_CHANNELS,
+        output_dir: Path | None = None,
+    ):
         """
         Initialize power monitor plotter.
 
@@ -131,20 +142,23 @@ class PowerMonitorPlotter:
                 plot_voltage=plot_voltage,
                 plot_current=plot_current,
                 plot_power=plot_power,
-                plot_frequency=plot_frequency
+                plot_frequency=plot_frequency,
             )
 
             return True
 
-        except Exception as e:
+        except Exception:
             logger.exception(f"Error generating plots for {file_path}")
             return False
 
-    def _plot_data_static(self, file_path: str,
-                         plot_frequency: bool = True,
-                         plot_voltage: bool = True,
-                         plot_current: bool = True,
-                         plot_power: bool = True) -> None:
+    def _plot_data_static(
+        self,
+        file_path: str,
+        plot_frequency: bool = True,
+        plot_voltage: bool = True,
+        plot_current: bool = True,
+        plot_power: bool = True,
+    ) -> None:
         """
         Create static visualization plots from power monitoring data.
 
@@ -168,7 +182,7 @@ class PowerMonitorPlotter:
 
         # Handle datetime conversion
         time = np.array(table['time_us'])
-        time = np.array(time/1000000, dtype='datetime64[s]')
+        time = np.array(time / 1000000, dtype='datetime64[s]')
 
         date_fmt = '%Y-%m-%d %H:%M'
         date_formatter = mdate.DateFormatter(date_fmt)
@@ -237,7 +251,7 @@ class PowerMonitorPlotter:
 
         except Exception as e:
             logger.error(f"Error: Matplotlib plotting failed: {e}")
-            raise RuntimeError(f"Plotting failed: {e}")
+            raise RuntimeError(f"Plotting failed: {e}") from e
 
 
 class WaveformPlotter:
@@ -246,7 +260,7 @@ class WaveformPlotter:
     SAMPLE_RATE = 32_000
     SAMPLES_PER_CYCLE = 533  # ~32000 Hz / 60 Hz
 
-    def __init__(self, output_dir: Optional[Path] = None):
+    def __init__(self, output_dir: Path | None = None):
         """
         Initialize waveform plotter.
 
@@ -275,17 +289,22 @@ class WaveformPlotter:
                 file_path=str(file_path),
                 start_sec=start_sec,
                 duration_ms=duration_ms,
-                plot_waveform=True
+                plot_waveform=True,
             )
 
             return True
 
-        except Exception as e:
+        except Exception:
             logger.exception(f"Error generating waveform plots for {file_path}")
             return False
 
-    def _plot_waveform_static(self, file_path: str, start_sec: float = 0.0,
-                             duration_ms: float = 100.0, plot_waveform: bool = True) -> None:
+    def _plot_waveform_static(
+        self,
+        file_path: str,
+        start_sec: float = 0.0,
+        duration_ms: float = 100.0,
+        plot_waveform: bool = True,
+    ) -> None:
         """
         Create static waveform plots from parquet data.
 
@@ -306,12 +325,14 @@ class WaveformPlotter:
         user_metadata = file_metadata.metadata
 
         # Check if we need scaling (i.e., if data is I32)
-        is_i32 = table['VA'].type == 'int32'
+        is_i32 = pa.types.is_integer(table['VA'].type)
 
         # Only parse scaling factors if we're dealing with I32 data
-        if is_i32:
-            vscale = float(user_metadata[b'vscale'].decode())
-            iscale = float(user_metadata[b'iscale'].decode())
+        if is_i32 and user_metadata:
+            vscale_raw = user_metadata.get(b'vscale')
+            iscale_raw = user_metadata.get(b'iscale')
+            vscale = float(vscale_raw.decode()) if vscale_raw else 1.0
+            iscale = float(iscale_raw.decode()) if iscale_raw else 1.0
         else:
             vscale = 1.0
             iscale = 1.0
@@ -327,11 +348,8 @@ class WaveformPlotter:
             scale_neutral_current = lambda data: data.to_numpy()
 
         # Calculate sample slice
-        SAMPLE_RATE = 32000  # Hz
-        SAMPLES_PER_CYCLE = SAMPLE_RATE / 60  # Assuming 60Hz
-
-        start_sample = int(start_sec * SAMPLE_RATE)
-        num_samples = int(duration_ms * SAMPLE_RATE / 1000)
+        start_sample = int(start_sec * self.SAMPLE_RATE)
+        num_samples = int(duration_ms * self.SAMPLE_RATE / 1000)
         SLICE = slice(start_sample, start_sample + num_samples)
 
         # Set output base path
@@ -344,17 +362,21 @@ class WaveformPlotter:
             if plot_waveform:
                 fig, (ax1, ax2) = plt.subplots(2)
                 fig.subplots_adjust(left=0.15, right=0.95, top=0.83)
-                fig.suptitle(f"AC Waveforms @ {SAMPLE_RATE/1000:.0f} kHz (~{SAMPLES_PER_CYCLE:.1f} pts/cycle)")
+                rate_khz = self.SAMPLE_RATE / 1000
+                fig.suptitle(
+                    f"AC Waveforms @ {rate_khz:.0f} kHz (~{self.SAMPLES_PER_CYCLE:.1f} pts/cycle)"
+                )
 
                 # Voltage subplot
                 ax1.set_title("Voltage")
                 ax1.xaxis.set_tick_params(labelbottom=False)
                 ax1.set_xticks([])
                 ax1.set_ylabel("Voltage [V]")
-                x = np.arange(0, len(table['VA'][SLICE])/SAMPLE_RATE, 1/SAMPLE_RATE)
+                x = np.arange(0, len(table['VA'][SLICE]) / self.SAMPLE_RATE, 1 / self.SAMPLE_RATE)
                 for ch in WAVEFORM_VOLTAGE_CHANNELS:
-                    ax1.plot(x, scale_voltage(table[ch][SLICE]),
-                             label=ch, color=COLOR_SCHEMES.get(ch))
+                    ax1.plot(
+                        x, scale_voltage(table[ch][SLICE]), label=ch, color=COLOR_SCHEMES.get(ch)
+                    )
                 ax1.legend()
 
                 # Current subplot
@@ -362,10 +384,15 @@ class WaveformPlotter:
                 ax2.set_xlabel("Elapsed time [s]")
                 ax2.set_ylabel("Current [A]")
                 for ch in ['IA', 'IB', 'IC']:
-                    ax2.plot(x, scale_current(table[ch][SLICE]),
-                             label=ch, color=COLOR_SCHEMES.get(ch))
-                ax2.plot(x, scale_neutral_current(table['IN'][SLICE]),
-                         label='IN', color=COLOR_SCHEMES.get('IN'))
+                    ax2.plot(
+                        x, scale_current(table[ch][SLICE]), label=ch, color=COLOR_SCHEMES.get(ch)
+                    )
+                ax2.plot(
+                    x,
+                    scale_neutral_current(table['IN'][SLICE]),
+                    label='IN',
+                    color=COLOR_SCHEMES.get('IN'),
+                )
                 ax2.legend()
 
                 fig.savefig(file_base + "_waveform.svg")
@@ -373,4 +400,4 @@ class WaveformPlotter:
 
         except Exception as e:
             logger.error(f"Error: Matplotlib plotting failed: {e}")
-            raise RuntimeError(f"Plotting failed: {e}")
+            raise RuntimeError(f"Plotting failed: {e}") from e

@@ -5,7 +5,7 @@ Core analysis functions require only numpy (base dependency). The
 :func:`plot_extracted_cycles` function requires matplotlib (``[analysis]`` extra).
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 def find_zero_crossings(
     signal: NDArray[np.floating],
     time_array: NDArray[np.floating],
-) -> Tuple[NDArray[np.float64], NDArray[np.intp]]:
+) -> tuple[NDArray[np.float64], NDArray[np.intp]]:
     """Find negative-to-positive zero crossings in a signal.
 
     Uses linear interpolation between adjacent samples to estimate the
@@ -36,7 +36,9 @@ def find_zero_crossings(
     for i in range(len(signal) - 1):
         if signal[i] < 0 and signal[i + 1] >= 0:
             if signal[i + 1] != signal[i]:
-                t_cross = time_array[i] + (time_array[i + 1] - time_array[i]) * (-signal[i]) / (signal[i + 1] - signal[i])
+                t_cross = time_array[i] + (time_array[i + 1] - time_array[i]) * (-signal[i]) / (
+                    signal[i + 1] - signal[i]
+                )
                 crossings.append(t_cross)
                 crossing_indices.append(i)
 
@@ -46,9 +48,9 @@ def find_zero_crossings(
 def extract_complete_cycles(
     signal: NDArray[np.floating],
     time_array: NDArray[np.floating],
-    start_times: List[float],
+    start_times: list[float],
     num_cycles: int = 1,
-) -> List[Tuple[NDArray[np.float64], NDArray[np.floating], float, float]]:
+) -> list[tuple[NDArray[np.float64], NDArray[np.floating], float, float]]:
     """Extract complete AC cycles starting from specified times.
 
     For each requested start time, finds the first zero crossing at or after
@@ -89,18 +91,20 @@ def extract_complete_cycles(
         cycle_signal = signal[mask]
 
         cycle_time_normalized = cycle_time - cycle_time[0]
-        cycles_data.append((cycle_time_normalized, cycle_signal, float(cycle_start_time), float(cycle_end_time)))
+        cycles_data.append(
+            (cycle_time_normalized, cycle_signal, float(cycle_start_time), float(cycle_end_time))
+        )
 
     return cycles_data
 
 
 def plot_extracted_cycles(
-    signal_dict: Union[Dict[str, NDArray[np.floating]], NDArray[np.floating]],
+    signal_dict: dict[str, NDArray[np.floating]] | NDArray[np.floating],
     time_array: NDArray[np.floating],
-    start_times: List[float],
+    start_times: list[float],
     num_cycles: int = 1,
-    epoch_start_time: Optional[Any] = None,
-) -> Tuple[Any, Any, List[Tuple[float, float]]]:
+    epoch_start_time: Any | None = None,
+) -> tuple[Any, Any, list[tuple[float, float]]]:
     """Plot complete cycles extracted from specified start times for multiple phases.
 
     Requires matplotlib (``[analysis]`` extra).
@@ -125,8 +129,7 @@ def plot_extracted_cycles(
         import matplotlib.pyplot as plt
     except ImportError:
         raise ImportError(
-            "plot_extracted_cycles requires matplotlib.\n"
-            "Install with: pip install equser[analysis]"
+            "plot_extracted_cycles requires matplotlib.\nInstall with: pip install equser[analysis]"
         )
     from datetime import datetime, timedelta
 
@@ -141,8 +144,14 @@ def plot_extracted_cycles(
 
     window_times = [(actual_start, actual_end) for _, _, actual_start, actual_end in cycles_data]
 
-    phase_colors = {'VA': 'black', 'VB': 'red', 'VC': 'blue',
-                    'VAB': 'black', 'VBC': 'red', 'VCA': 'blue'}
+    phase_colors = {
+        'VA': 'black',
+        'VB': 'red',
+        'VC': 'blue',
+        'VAB': 'black',
+        'VBC': 'red',
+        'VCA': 'blue',
+    }
 
     fig, axes = plt.subplots(1, len(cycles_data), figsize=(12, 5), sharey=True)
     fig.suptitle(
@@ -162,8 +171,15 @@ def plot_extracted_cycles(
             mask = (time_array >= actual_start) & (time_array <= actual_end)
             phase_voltage = signal[mask]
             color = phase_colors.get(phase_name, 'gray')
-            ax.plot(time_pu, phase_voltage, 'o', color=color, alpha=0.8,
-                    markersize=0.5, label=phase_name)
+            ax.plot(
+                time_pu,
+                phase_voltage,
+                'o',
+                color=color,
+                alpha=0.8,
+                markersize=0.5,
+                label=phase_name,
+            )
 
         ax.axhline(0, color='gray', linestyle='--', alpha=0.5)
         ax.grid(True, alpha=0.3)
@@ -190,8 +206,15 @@ def plot_extracted_cycles(
 
     if len(axes) > 1:
         d = 0.3
-        kwargs = dict(marker=[(d, -1), (-d, 1)], markersize=8,
-                      linestyle="none", color='k', mec='k', mew=1, clip_on=False)
+        kwargs = dict(
+            marker=[(d, -1), (-d, 1)],
+            markersize=8,
+            linestyle="none",
+            color='k',
+            mec='k',
+            mew=1,
+            clip_on=False,
+        )
         for i in range(len(axes) - 1):
             axes[i].plot([1, 1], [0, 1], transform=axes[i].transAxes, **kwargs)
             axes[i + 1].plot([0, 0], [0, 1], transform=axes[i + 1].transAxes, **kwargs)
@@ -214,8 +237,15 @@ def plot_extracted_cycles(
         else:
             label_text = f'Window @\n{actual_start:.6f}s'
 
-        ax.text(0.75, 0.95, label_text, transform=ax.transAxes,
-                ha='center', va='top', fontsize=10,
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue'))
+        ax.text(
+            0.75,
+            0.95,
+            label_text,
+            transform=ax.transAxes,
+            ha='center',
+            va='top',
+            fontsize=10,
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue'),
+        )
 
     return fig, axes, window_times

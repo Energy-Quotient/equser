@@ -5,7 +5,6 @@ EQ Wave sensor's power monitor subsystem.
 """
 
 from pathlib import Path
-from typing import Dict, Union
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -16,7 +15,7 @@ from equser.pmon.dataops import FIELD_DESCRIPTIONS
 __all__ = ['FIELD_DESCRIPTIONS', 'load_pmon']
 
 
-def load_pmon(file_path: Union[str, Path]) -> pa.Table:
+def load_pmon(file_path: str | Path) -> pa.Table:
     """Load a PMon Parquet file as a PyArrow Table.
 
     PMon files contain 10/12-cycle RMS measurements: voltage, current, power,

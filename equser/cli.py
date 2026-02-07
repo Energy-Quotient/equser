@@ -10,11 +10,11 @@ Usage:
 """
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from typing import Optional, Sequence
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from collections.abc import Sequence
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """Main CLI entry point for equser.
 
     Args:
@@ -40,11 +40,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Power monitoring commands (acquire, convert)",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
-    pmon_parser.add_argument(
-        'pmon_args',
-        nargs='*',
-        help="Arguments passed to pmon subcommand"
-    )
+    pmon_parser.add_argument('pmon_args', nargs='*', help="Arguments passed to pmon subcommand")
 
     # plot subcommand
     plot_parser = subparsers.add_parser(
@@ -52,23 +48,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Plot data from Parquet file (requires equser[analysis])",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
+    plot_parser.add_argument('file', help="Path to Parquet file to plot")
     plot_parser.add_argument(
-        'file',
-        help="Path to Parquet file to plot"
+        '--pmon', action='store_true', help="Force interpretation as pmon data"
     )
     plot_parser.add_argument(
-        '--pmon',
-        action='store_true',
-        help="Force interpretation as pmon data"
+        '--cpow', action='store_true', help="Force interpretation as cpow data"
     )
     plot_parser.add_argument(
-        '--cpow',
-        action='store_true',
-        help="Force interpretation as cpow data"
-    )
-    plot_parser.add_argument(
-        '-o', '--output',
-        help="Output file path (default: display interactively)"
+        '-o', '--output', help="Output file path (default: display interactively)"
     )
 
     # snapshot subcommand
@@ -78,19 +66,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     snapshot_parser.add_argument(
-        '--host', default='localhost',
+        '--host',
+        default='localhost',
         help="Gateway hostname or IP",
     )
     snapshot_parser.add_argument(
-        '--port', type=int, default=8080,
+        '--port',
+        type=int,
+        default=8080,
         help="Gateway port",
     )
     snapshot_parser.add_argument(
-        '--duration', type=float, default=5.0,
+        '--duration',
+        type=float,
+        default=5.0,
         help="Capture duration in seconds",
     )
     snapshot_parser.add_argument(
-        '--output', default=None,
+        '--output',
+        default=None,
         help="Output parquet file path",
     )
 
@@ -110,11 +104,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     nb_copy.add_argument(
-        '--dest', default='.',
+        '--dest',
+        default='.',
         help="Destination directory",
     )
     nb_copy.add_argument(
-        '--overwrite', action='store_true',
+        '--overwrite',
+        action='store_true',
         help="Overwrite existing files",
     )
     nb_copy.add_argument(
@@ -127,6 +123,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     # Try to enable argcomplete if available
     try:
         from argcomplete import autocomplete
+
         autocomplete(parser)
     except ImportError:
         pass
@@ -139,8 +136,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == 'pmon':
         from equser.pmon import main as pmon_main
-        pmon_main(args.pmon_args)
-        return 0
+
+        return pmon_main(args.pmon_args) or 0
 
     if args.command == 'plot':
         return _handle_plot(args)
@@ -171,6 +168,7 @@ def _handle_plot(args) -> int:
         return 1
 
     from pathlib import Path
+
     import pyarrow.parquet as pq
 
     file_path = Path(args.file)
@@ -194,7 +192,7 @@ def _handle_plot(args) -> int:
             elif 'VA' in field_names or 'IA' in field_names:
                 data_type = 'cpow'
             else:
-                print(f"Warning: Could not auto-detect data type. Use --pmon or --cpow.")
+                print("Warning: Could not auto-detect data type. Use --pmon or --cpow.")
                 return 1
         except Exception as e:
             print(f"Error reading file schema: {e}")
@@ -211,6 +209,7 @@ def _handle_plot(args) -> int:
         if not args.output:
             # Show interactive plot
             import matplotlib.pyplot as plt
+
             plt.show()
 
         return 0
@@ -222,14 +221,13 @@ def _handle_plot(args) -> int:
 def _handle_snapshot(args) -> int:
     """Handle the snapshot subcommand."""
     from pathlib import Path
+
     from equser.snapshot import capture
 
     output = Path(args.output) if args.output else None
     try:
         capture(args.host, args.port, args.duration, output)
         return 0
-    except SystemExit as exc:
-        return exc.code if isinstance(exc.code, int) else 1
     except Exception as exc:
         print(f"Error: {exc}")
         return 1
@@ -237,7 +235,7 @@ def _handle_snapshot(args) -> int:
 
 def _handle_notebooks(args) -> int:
     """Handle the notebooks subcommand."""
-    from equser.notebooks import list_notebooks, copy_notebooks
+    from equser.notebooks import copy_notebooks, list_notebooks
 
     if args.nb_action == 'list':
         notebooks = list_notebooks()

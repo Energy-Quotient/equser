@@ -27,19 +27,14 @@ Quick start::
     crossings, indices = find_zero_crossings(result['VA'], time_array)
 """
 
-from equser._version import __version__, __version_info__
-
 # Core modules always available
-from equser import core
-from equser import utils
-from equser import pmon
-from equser import data
-from equser import analysis
-from equser import notebooks
+from equser import analysis, core, data, notebooks, pmon, utils
+from equser._version import __version__, __version_info__
 
 # Plotting requires [analysis] extra (matplotlib)
 try:
     from equser import plotting
+
     _has_plotting = True
 except ImportError:
     _has_plotting = False
@@ -47,12 +42,21 @@ except ImportError:
 # API client requires [analysis] extra (requests, websocket-client)
 try:
     from equser import api
+
     _has_api = True
 except ImportError:
     _has_api = False
 
-__all__ = ['core', 'utils', 'pmon', 'data', 'analysis', 'notebooks',
-           '__version__', '__version_info__']
+__all__ = [
+    'core',
+    'utils',
+    'pmon',
+    'data',
+    'analysis',
+    'notebooks',
+    '__version__',
+    '__version_info__',
+]
 
 if _has_plotting:
     __all__.append('plotting')

@@ -45,7 +45,7 @@ def _package_dir() -> Path:
     return Path(str(ref))
 
 
-def list_notebooks() -> List[str]:
+def list_notebooks() -> list[str]:
     """Return a sorted list of notebook paths relative to the package.
 
     Returns:
@@ -80,8 +80,8 @@ def get_notebook_path(name: str) -> Path:
 def copy_notebooks(
     dest: str,
     overwrite: bool = False,
-    category: Optional[str] = None,
-) -> List[Path]:
+    category: str | None = None,
+) -> list[Path]:
     """Copy bundled notebooks to a destination directory.
 
     Args:
@@ -96,7 +96,7 @@ def copy_notebooks(
     """
     dest_dir = Path(dest)
     root = _package_dir()
-    copied: List[Path] = []
+    copied: list[Path] = []
 
     for rel in list_notebooks():
         if category and not rel.startswith(category + "/"):

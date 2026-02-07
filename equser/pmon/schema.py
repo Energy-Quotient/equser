@@ -3,15 +3,13 @@
 Requires the ``[daq]`` extra (avro) for schema creation.
 """
 
-from typing import List, Tuple
-
 try:
     from avro.schema import RecordSchema
 except ImportError:
     RecordSchema = None
 
 
-def create_schema(num_phases: int) -> Tuple['RecordSchema', str, List[str]]:
+def create_schema(num_phases: int) -> tuple['RecordSchema', str, list[str]]:
     """Create Avro schema based on the sensor configuration.
 
     Args:
@@ -26,7 +24,7 @@ def create_schema(num_phases: int) -> Tuple['RecordSchema', str, List[str]]:
 
     Raises:
         ImportError: If avro package is not installed
-        AssertionError: If num_phases is not between 1 and 3
+        ValueError: If num_phases is not between 1 and 3
 
     The schema includes:
     - Timestamp (microseconds since epoch)
@@ -40,11 +38,11 @@ def create_schema(num_phases: int) -> Tuple['RecordSchema', str, List[str]]:
     """
     if RecordSchema is None:
         raise ImportError(
-            "Schema creation requires the [daq] extra.\n"
-            "Install with: pip install equser[daq]"
+            "Schema creation requires the [daq] extra.\nInstall with: pip install equser[daq]"
         )
 
-    assert 1 <= num_phases <= 3, f"Invalid number of phases: {num_phases}"
+    if not 1 <= num_phases <= 3:
+        raise ValueError(f"Invalid number of phases: {num_phases}")
 
     # Prefixes for phase-specific measurements
     phases = ['A'] + (['B'] if num_phases >= 2 else []) + (['C'] if num_phases == 3 else [])
@@ -56,21 +54,18 @@ def create_schema(num_phases: int) -> Tuple['RecordSchema', str, List[str]]:
         ["FREQ"]
         + apply_prefixes(phases, "VRMS")  # RMS voltage
         + apply_prefixes(phases_plus_neutral, "IRMS")  # RMS current
-        + apply_prefixes(phases, "WATT")   # Active power
+        + apply_prefixes(phases, "WATT")  # Active power
         + apply_prefixes(phases, "FVRMS")  # Fundamental RMS voltage
         + apply_prefixes(phases, "FIRMS")  # Fundamental RMS current
         + apply_prefixes(phases, "FWATT")  # Fundamental active power
-        + apply_prefixes(phases, "FVAR")   # Fundamental reactive power
+        + apply_prefixes(phases, "FVAR")  # Fundamental reactive power
     )
 
     # Create the schema in Avro format
-    fields = [{"name": time_name, "type": "long"}] + \
-             [{"name": name, "type": "float"} for name in var_names]
+    fields = [{"name": time_name, "type": "long"}] + [
+        {"name": name, "type": "float"} for name in var_names
+    ]
 
-    schema = RecordSchema(
-        name="PQSensor",
-        namespace="power_monitor",
-        fields=fields
-    )
+    schema = RecordSchema(name="PQSensor", namespace="power_monitor", fields=fields)
 
     return schema, time_name, var_names

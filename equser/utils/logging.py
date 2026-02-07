@@ -24,6 +24,7 @@ def configure_logging(level: str = 'INFO', use_color: bool = True) -> None:
     if use_color:
         try:
             import colorlog  # noqa: F401
+
             has_colorlog = True
         except ImportError:
             pass
@@ -38,36 +39,29 @@ def configure_logging(level: str = 'INFO', use_color: bool = True) -> None:
                 'INFO': 'white',
                 'WARNING': 'yellow',
                 'ERROR': 'red',
-                'CRITICAL': 'bold_red'
-            }
+                'CRITICAL': 'bold_red',
+            },
         }
     else:
         formatter_config = {
             'format': '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S'
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         }
 
     logging_config = {
         'version': 1,
         'disable_existing_loggers': False,
-        'root': {
-            'level': level,
-            'handlers': ['console']
-        },
-        'formatters': {
-            'default': formatter_config
-        },
+        'root': {'level': level, 'handlers': ['console']},
+        'formatters': {'default': formatter_config},
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
                 'level': level,
                 'formatter': 'default',
-                'stream': 'ext://sys.stdout'
+                'stream': 'ext://sys.stdout',
             }
         },
-        'loggers': {
-            'numexpr': {'level': 'WARNING'}
-        }
+        'loggers': {'numexpr': {'level': 'WARNING'}},
     }
     logging.config.dictConfig(logging_config)
     _configured = True

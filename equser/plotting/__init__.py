@@ -12,14 +12,14 @@ Usage:
 """
 
 from .power_quality import (
+    COLOR_SCHEMES,
+    CURRENT_CHANNELS,
+    DEFAULT_VISIBLE_CHANNELS,
+    FREQ_CHANNELS,
+    POWER_CHANNELS,
+    VOLTAGE_CHANNELS,
     PowerMonitorPlotter,
     WaveformPlotter,
-    COLOR_SCHEMES,
-    VOLTAGE_CHANNELS,
-    CURRENT_CHANNELS,
-    POWER_CHANNELS,
-    FREQ_CHANNELS,
-    DEFAULT_VISIBLE_CHANNELS,
 )
 
 __all__ = [

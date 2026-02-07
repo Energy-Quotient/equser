@@ -6,7 +6,8 @@ Requires the ``[analysis]`` extra (websocket-client)::
 """
 
 import json
-from typing import Any, Dict, Generator, Optional, Union
+from collections.abc import Generator
+from typing import Any
 
 import pyarrow.ipc as ipc
 import websocket
@@ -15,8 +16,8 @@ DEFAULT_GATEWAY_URL = "http://localhost:8080"
 
 
 def connect_cpow_stream(
-    gateway_url: Optional[str] = None,
-) -> Generator[Union[Any, Dict[str, Any]], None, None]:
+    gateway_url: str | None = None,
+) -> Generator[Any | dict[str, Any], None, None]:
     """Connect to the CPOW waveform WebSocket and yield Arrow RecordBatches.
 
     Each binary message is an Arrow IPC RecordBatch containing ~512 rows
@@ -58,8 +59,8 @@ def connect_spectral_stream(
     update_rate: float = 10.0,
     freq_min: int = 0,
     freq_max: int = 3000,
-    gateway_url: Optional[str] = None,
-) -> Generator[Dict[str, Any], None, None]:
+    gateway_url: str | None = None,
+) -> Generator[dict[str, Any], None, None]:
     """Connect to the spectral WebSocket and yield JSON frames.
 
     Args:

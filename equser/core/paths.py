@@ -7,7 +7,6 @@ Follows XDG Base Directory Specification where applicable.
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 def get_xdg_config_home() -> Path:
@@ -87,13 +86,14 @@ class EquserPaths:
         cpow_data: Continuous point-on-wave data directory
         config_file: Path to configuration file
     """
+
     data: Path = field(default_factory=get_data_dir)
     config_file: Path = field(default_factory=get_config_path)
 
     def __post_init__(self):
         """Initialize derived paths."""
-        self._pmon_data: Optional[Path] = None
-        self._cpow_data: Optional[Path] = None
+        self._pmon_data: Path | None = None
+        self._cpow_data: Path | None = None
 
     @property
     def pmon_data(self) -> Path:

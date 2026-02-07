@@ -2,7 +2,7 @@
 
 import pytest
 
-from equser.pmon.errors import DataAcquisitionError, ConnectionError, ConfigurationError
+from equser.pmon.errors import DataAcquisitionError, SensorConnectionError, ConfigurationError
 from equser.pmon.dataops import FIELD_DESCRIPTIONS, COLUMN_ENCODING
 
 
@@ -10,10 +10,10 @@ from equser.pmon.dataops import FIELD_DESCRIPTIONS, COLUMN_ENCODING
 
 class TestErrorHierarchy:
     def test_connection_error_is_daq_error(self):
-        assert issubclass(ConnectionError, DataAcquisitionError)
+        assert issubclass(SensorConnectionError, DataAcquisitionError)
 
     def test_connection_error_is_oserror(self):
-        assert issubclass(ConnectionError, OSError)
+        assert issubclass(SensorConnectionError, OSError)
 
     def test_configuration_error_is_daq_error(self):
         assert issubclass(ConfigurationError, DataAcquisitionError)
@@ -64,9 +64,9 @@ class TestCreateSchema:
 
     def test_invalid_phases(self):
         from equser.pmon.schema import create_schema
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             create_schema(0)
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             create_schema(4)
 
 

@@ -12,13 +12,12 @@ Requires the ``[daq]`` extra::
 
 import signal
 import socket
-
 from datetime import timedelta
 from multiprocessing import Process
 from pathlib import Path
 from struct import Struct
 from time import sleep, time_ns
-from typing import Optional, Any, Dict
+from typing import Any
 
 try:
     from avro.datafile import DataFileWriter
@@ -28,12 +27,12 @@ except ImportError:
 else:
     _has_avro = True
 
+from equser.core.config import get_sensor_address, load_config
 from equser.core.paths import PATHS
-from equser.core.config import load_config, get_sensor_address
 from equser.core.system import format_oserror
 from equser.pmon.dataops import convert_avro_to_parquet
+from equser.pmon.errors import ConfigurationError, SensorConnectionError
 from equser.pmon.schema import create_schema
-from equser.pmon.errors import ConfigurationError, ConnectionError
 from equser.utils.datetime import DateTime
 from equser.utils.logging import get_logger
 
@@ -46,12 +45,11 @@ def _check_avro():
     """Raise ImportError with helpful message if avro is not installed."""
     if not _has_avro:
         raise ImportError(
-            "Live data acquisition requires the [daq] extra.\n"
-            "Install with: pip install equser[daq]"
+            "Live data acquisition requires the [daq] extra.\nInstall with: pip install equser[daq]"
         )
 
 
-class PowerMonitor(object):
+class PowerMonitor:
     """Client for retrieving and saving data from the EQ Wave's power monitor.
 
     This class handles:
@@ -79,7 +77,7 @@ class PowerMonitor(object):
 
     Raises:
         ConfigurationError: If configuration parameters are invalid
-        ConnectionError: If connection to sensor fails
+        SensorConnectionError: If connection to sensor fails
         ImportError: If avro package is not installed (install equser[daq])
         OSError: If file system operations fail
     """
@@ -88,20 +86,28 @@ class PowerMonitor(object):
     # Otherwise any disk/network delay will cause a delay in retrieving data from
     # the socket, and thus a risk of data buffer overrun, affecting both pmon and wave.
 
-    def __init__(self, ip_address: str,
-                 connection: Dict[str, int] = dict(
-                     port=1535,
-                     retry_delay=3,
-                     num_retries=-1,
-                     connect_timeout=5,
-                     data_timeout=0.6),
-                 parquet: Dict[str, Any] = dict(
-                     interval=86400,
-                     flush_every=-1,
-                     compression=dict(method='ZSTD', level=4)
-                 ),
-                 data_dir: Optional[Path] = None,
-                 convert_files_on_startup: bool = True) -> None:
+    def __init__(
+        self,
+        ip_address: str,
+        connection: dict[str, int] | None = None,
+        parquet: dict[str, Any] | None = None,
+        data_dir: Path | None = None,
+        convert_files_on_startup: bool = True,
+    ) -> None:
+        if connection is None:
+            connection = {
+                'port': 1535,
+                'retry_delay': 3,
+                'num_retries': -1,
+                'connect_timeout': 5,
+                'data_timeout': 0.6,
+            }
+        if parquet is None:
+            parquet = {
+                'interval': 86400,
+                'flush_every': -1,
+                'compression': {'method': 'ZSTD', 'level': 4},
+            }
         _check_avro()
 
         # Use provided data directory or fall back to PATHS
@@ -110,9 +116,11 @@ class PowerMonitor(object):
             logger.info(f"Creating folder for power monitor data at {self.dest.absolute()}")
             self.dest.mkdir(parents=True, exist_ok=True)
 
-        self.file_conversion_kwargs = dict(compression=parquet['compression']['method'],
-                                           compression_level=parquet['compression']['level'],
-                                           remove=True)
+        self.file_conversion_kwargs = {
+            'compression': parquet['compression']['method'],
+            'compression_level': parquet['compression']['level'],
+            'remove': True,
+        }
 
         # Convert any existing Avro files
         if convert_files_on_startup:
@@ -125,7 +133,7 @@ class PowerMonitor(object):
                             name=f"pmon convert {avro_file.name}",
                             target=convert_avro_to_parquet,
                             args=(avro_file,),
-                            kwargs=self.file_conversion_kwargs
+                            kwargs=self.file_conversion_kwargs,
                         ).start()
                     except Exception as e:
                         logger.warning(f"Failed to convert {avro_file}: {e}")
@@ -141,6 +149,7 @@ class PowerMonitor(object):
         self.flush_every = parquet['flush_every']
         self.sock = None
         self.writer = None
+        self._file_handle = None
         self.file_path = None
 
         signal.signal(signal.SIGTERM, self._sigterm_handler)
@@ -159,7 +168,7 @@ class PowerMonitor(object):
 
         # Create a TCP/IP socket and connect to the EQ Wave's power monitor.
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Reuse the socket like the sensor does
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Reuse socket
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
         self.sock.settimeout(self.connect_timeout)
         logger.info(f"Connecting to power monitor at {self.ip_address} port {self.port}...")
@@ -179,14 +188,19 @@ class PowerMonitor(object):
                 break
             except OSError as e:
                 if self.num_retries != -1 and retry_count >= self.num_retries:
-                    raise ConnectionError(f"Could not connect after {retry_count + 1} tries; got {format_oserror(e)}")
+                    raise SensorConnectionError(
+                        f"Could not connect after {retry_count + 1} tries; got {format_oserror(e)}"
+                    ) from e
 
                 # Only log if error type or number changes
                 current_error_type = type(e).__name__
                 current_errno = getattr(e, 'errno', None)
 
                 if current_error_type != last_error_type or current_errno != last_errno:
-                    logger.warning(f"Connection attempt {retry_count + 1} failed: {format_oserror(e)} (future warnings of same type will be silenced)")
+                    logger.warning(
+                        f"Connection attempt {retry_count + 1} failed: "
+                        f"{format_oserror(e)} (future same-type warnings silenced)"
+                    )
                     last_error_type = current_error_type
                     last_errno = current_errno
 
@@ -216,24 +230,26 @@ class PowerMonitor(object):
 
         # Receive the configuration/status word and prepare for the data.
         try:
-            rxbuf = self.sock.recv(4) # 4 bytes for config word
+            rxbuf = self.sock.recv(4)  # 4 bytes for config word
         except OSError as e:
             logger.error(f"Error receiving the configuration word: {format_oserror(e)}")
             raise
         num_bytes = len(rxbuf)
         if num_bytes != 4:
             logger.error(f"Expected configuration word of 4 bytes, got {num_bytes}")
-            raise ConnectionError()
+            raise SensorConnectionError()
         num_phases = Struct('<I').unpack(rxbuf)[0]
         schema, time_name, var_names = create_schema(num_phases)
-        self.writer = DataFileWriter(open(self.file_path, "wb"), DatumWriter(), schema)
-        row_size = (num_phases*7 + 3)*4  # + 3 for config/status word, FREQ, and IRMS
+        self._file_handle = open(self.file_path, "wb")
+        self.writer = DataFileWriter(self._file_handle, DatumWriter(), schema)
+        row_size = (num_phases * 7 + 3) * 4  # + 3 for config/status word, FREQ, and IRMS
         data_buffer = bytearray(row_size)
-        unpack = Struct('<%uf' % (num_phases*7 + 2)).unpack # + 2 for FREQ and INRMS (we'll drop subsequent config/status words)
+        # + 2 for FREQ and INRMS (we'll drop subsequent config/status words)
+        unpack = Struct(f'<{num_phases * 7 + 2}f').unpack
         data_dict = dict.fromkeys(var_names)
 
         # Receive the rest of the first packet of data.
-        logger.info(f"Receiving data")
+        logger.info("Receiving data")
         try:
             view = memoryview(data_buffer)[4:]
             received = self.sock.recv_into(view)
@@ -245,12 +261,12 @@ class PowerMonitor(object):
                     received = self.sock.recv_into(view)
                     if not received:
                         logger.error("Connection closed by remote host")
-                        raise ConnectionError()
+                        raise SensorConnectionError()
                     remaining -= received
                     attempts += 1
                 if remaining:
                     logger.error(f"Incomplete data after {MAX_READ_ATTEMPTS} attempts")
-                    raise ConnectionError()
+                    raise SensorConnectionError()
 
             # Update time index and values in data dictionary
             data_dict[time_name] = time_ns() // 1000
@@ -278,13 +294,13 @@ class PowerMonitor(object):
                             received = self.sock.recv_into(view)
                             if not received:
                                 logger.error("Connection closed by remote host")
-                                raise ConnectionError()
+                                raise SensorConnectionError()
                             view = view[received:]
                             remaining -= received
                             attempts += 1
                         if remaining:
                             logger.error(f"Incomplete data after {MAX_READ_ATTEMPTS} attempts")
-                            raise ConnectionError()
+                            raise SensorConnectionError()
 
                     # Update time index and values in data dictionary
                     data_dict[time_name] = time_ns() // 1000
@@ -306,15 +322,17 @@ class PowerMonitor(object):
             # Close the file and convert to Parquet if writing files
             try:
                 self.writer.close()
-                Process(name="pmon convert",
-                        target=convert_avro_to_parquet,
-                        args=(self.file_path,),
-                        kwargs=self.file_conversion_kwargs).start()
+                Process(
+                    name="pmon convert",
+                    target=convert_avro_to_parquet,
+                    args=(self.file_path,),
+                    kwargs=self.file_conversion_kwargs,
+                ).start()
 
                 # Prepare the next data file
                 self.file_path = self.dest / next_time.strftime("%Y%m%d_%H%M.avro")
-                self.writer = DataFileWriter(open(self.file_path, "wb"),
-                                             DatumWriter(), schema)
+                self._file_handle = open(self.file_path, "wb")
+                self.writer = DataFileWriter(self._file_handle, DatumWriter(), schema)
             except Exception as e:
                 logger.error(f"Error during file rotation: {e}")
                 raise  # Let the main loop handle cleanup and retry
@@ -344,9 +362,9 @@ class PowerMonitor(object):
         """
         return self
 
-    def __exit__(self, exc_type: Optional[type],
-                 exc_val: Optional[Exception],
-                 traceback: Optional[Any]) -> None:
+    def __exit__(
+        self, exc_type: type | None, exc_val: Exception | None, traceback: Any | None
+    ) -> None:
         """Context manager exit method.
 
         Args:
@@ -367,7 +385,7 @@ class PowerMonitor(object):
             SystemExit: Always raised to initiate graceful shutdown
         """
         logger.info("Stopped by the system (via SIGTERM signal)")
-        raise(SystemExit)
+        raise SystemExit
 
     def _sigint_handler(self, signum: int, frame: Any) -> None:
         """Handle SIGINT (Ctrl+C) signal.
@@ -380,7 +398,7 @@ class PowerMonitor(object):
             KeyboardInterrupt: Always raised to initiate graceful shutdown
         """
         logger.info("Stopped by the user (via keyboard interrupt)")
-        raise(KeyboardInterrupt)
+        raise KeyboardInterrupt
 
     def _cleanup_on_error(self) -> None:
         """Cleanup resources when an error occurs.
@@ -408,7 +426,7 @@ class PowerMonitor(object):
             self.file_path = None
 
 
-def acquire(config_path: Optional[str] = None) -> None:
+def acquire(config_path: str | None = None) -> None:
     """Acquire power quality data from the DAQ.
 
     Args:
@@ -433,7 +451,7 @@ def acquire(config_path: Optional[str] = None) -> None:
         while True:
             try:
                 sensor.run()
-            except (ConnectionError, OSError):
+            except (SensorConnectionError, OSError):
                 sensor._cleanup_on_error()
                 logger.info("Waiting before retry...")
                 sleep(sensor.retry_delay)

@@ -171,7 +171,7 @@ pmon:
 
 ## License
 
-MIT License - Copyright (c) 2026 EQ Systems Inc.
+MIT License — © 2026 EQ Systems Inc.
 
 ## About
 

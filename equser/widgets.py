@@ -7,7 +7,6 @@ Requires the ``[jupyter]`` extra (ipywidgets)::
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 def create_file_selector(directory, pattern='*.parquet'):
@@ -31,8 +30,7 @@ def create_file_selector(directory, pattern='*.parquet'):
         import ipywidgets as widgets
     except ImportError:
         raise ImportError(
-            "create_file_selector requires ipywidgets.\n"
-            "Install with: pip install equser[jupyter]"
+            "create_file_selector requires ipywidgets.\nInstall with: pip install equser[jupyter]"
         )
 
     files = sorted(Path(directory).glob(pattern))
@@ -92,7 +90,7 @@ def create_file_selector(directory, pattern='*.parquet'):
             )
             file_info_cache[file_path] = info_html
             info_display.value = info_html
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             info_display.value = f"<div style='color: red;'>Error reading file info: {exc}</div>"
 
     clear_button = widgets.Button(
@@ -122,12 +120,14 @@ def create_file_selector(directory, pattern='*.parquet'):
 
     search_box.observe(_update_count, names='value')
 
-    file_selector = widgets.VBox([
-        widgets.HBox([search_box, clear_button]),
-        count_display,
-        selector,
-        info_display,
-    ])
+    file_selector = widgets.VBox(
+        [
+            widgets.HBox([search_box, clear_button]),
+            count_display,
+            selector,
+            info_display,
+        ]
+    )
 
     def get_selected():
         return selector.value

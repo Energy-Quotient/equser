@@ -6,7 +6,6 @@ and filename-based timestamps (YYYYMMDD_HHMM format).
 
 import re
 from datetime import datetime
-from typing import Optional
 
 
 def parse_start_time(start_time_str: str) -> datetime:
@@ -34,10 +33,10 @@ def parse_start_time(start_time_str: str) -> datetime:
     return datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M:%S.%f')
 
 
-_FILENAME_RE = re.compile(r'(\d{8})_(\d{4,6})')
+_FILENAME_RE = re.compile(r'(\d{8})_(\d{6}|\d{4})')
 
 
-def parse_filename_timestamp(filename: str) -> Optional[datetime]:
+def parse_filename_timestamp(filename: str) -> datetime | None:
     """Parse a timestamp from a data filename.
 
     Supports the YYYYMMDD_HHMM format used by PMon files and the
@@ -60,6 +59,7 @@ def parse_filename_timestamp(filename: str) -> Optional[datetime]:
     """
     # Extract just the stem if a full path is given
     from pathlib import Path
+
     stem = Path(filename).stem
 
     match = _FILENAME_RE.match(stem)

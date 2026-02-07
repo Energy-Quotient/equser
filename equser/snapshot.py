@@ -15,11 +15,9 @@ Usage from CLI::
 """
 
 import json
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import pyarrow as pa
 import pyarrow.ipc as ipc
@@ -32,7 +30,7 @@ def capture(
     host: str = "localhost",
     port: int = 8080,
     duration: float = 5.0,
-    output: Optional[Path] = None,
+    output: Path | None = None,
 ) -> Path:
     """Capture live CPOW waveform data and save to a parquet file.
 
@@ -48,16 +46,14 @@ def capture(
 
     Raises:
         ImportError: If websocket-client is not installed.
-        SystemExit: If no data is received.
+        RuntimeError: If no data is received.
     """
     try:
         import websocket
-    except ImportError:
-        print(
-            "Error: websocket-client is required. Install with: pip install websocket-client",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    except ImportError as exc:
+        raise ImportError(
+            "websocket-client is required. Install with: pip install websocket-client"
+        ) from exc
 
     if output is None:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -103,8 +99,7 @@ def capture(
     elapsed = time.time() - start_time
 
     if not batches:
-        print("No data received.", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError("No data received.")
 
     table = pa.Table.from_batches(batches)
     if len(table) > target_samples:
@@ -113,7 +108,7 @@ def capture(
     pq.write_table(table, output)
 
     file_size = output.stat().st_size
-    print(f"\nCapture complete:")
+    print("\nCapture complete:")
     print(f"  Samples:  {len(table):,} ({len(table) / SAMPLE_RATE:.2f} seconds)")
     print(f"  Batches:  {len(batches)}")
     if gaps:
@@ -133,19 +128,26 @@ def main(argv=None):
         description="Capture live CPOW waveform data to a parquet file.",
     )
     parser.add_argument(
-        "--host", default="localhost",
+        "--host",
+        default="localhost",
         help="Gateway hostname or IP (default: localhost)",
     )
     parser.add_argument(
-        "--port", type=int, default=8080,
+        "--port",
+        type=int,
+        default=8080,
         help="Gateway port (default: 8080)",
     )
     parser.add_argument(
-        "--duration", type=float, default=5.0,
+        "--duration",
+        type=float,
+        default=5.0,
         help="Capture duration in seconds (default: 5)",
     )
     parser.add_argument(
-        "--output", type=Path, default=None,
+        "--output",
+        type=Path,
+        default=None,
         help="Output parquet file path (default: snapshot_YYYYMMDD_HHMMSS.parquet)",
     )
     args = parser.parse_args(argv)

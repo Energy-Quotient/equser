@@ -3,8 +3,9 @@
 Provides configuration loading from YAML files with sensible defaults.
 """
 
+import copy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -15,7 +16,7 @@ logger = get_logger(__name__)
 
 
 # Default configuration values
-DEFAULT_CONFIG: Dict[str, Any] = {
+DEFAULT_CONFIG: dict[str, Any] = {
     'sensor': {
         'address': '192.168.10.10',
         'port': 1535,
@@ -45,7 +46,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
-def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+def load_config(config_path: str | Path | None = None) -> dict[str, Any]:
     """Load configuration from a YAML file.
 
     Resolution order:
@@ -62,7 +63,7 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
         FileNotFoundError: If specified config file doesn't exist
         yaml.YAMLError: If config file is invalid YAML
     """
-    config = DEFAULT_CONFIG.copy()
+    config = copy.deepcopy(DEFAULT_CONFIG)
 
     if config_path is None:
         config_path = get_config_path()
@@ -71,7 +72,7 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
 
     if config_path.exists():
         logger.debug(f"Loading configuration from {config_path}")
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             file_config = yaml.safe_load(f) or {}
 
         # Deep merge file config into defaults
@@ -82,15 +83,15 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
     return config
 
 
-def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """Deep merge two dictionaries.
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Deep merge two dictionaries, returning a new dict.
 
     Args:
-        base: Base dictionary (modified in place)
+        base: Base dictionary (not modified)
         override: Dictionary with values to override
 
     Returns:
-        Merged dictionary
+        New merged dictionary
     """
     result = base.copy()
     for key, value in override.items():
@@ -101,7 +102,7 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return result
 
 
-def get_sensor_address(config: Optional[Dict[str, Any]] = None) -> str:
+def get_sensor_address(config: dict[str, Any] | None = None) -> str:
     """Get sensor IP address from config.
 
     Args:

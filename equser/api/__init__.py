@@ -16,6 +16,7 @@ Usage::
 try:
     from equser.api.client import SynapseClient
     from equser.api.streaming import connect_cpow_stream, connect_spectral_stream
+
     _has_api = True
 except ImportError:
     _has_api = False

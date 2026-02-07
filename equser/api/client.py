@@ -5,12 +5,11 @@ Requires the ``[analysis]`` extra::
     pip install equser[analysis]
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pyarrow as pa
 import pyarrow.ipc as ipc
 import requests
-
 
 DEFAULT_GATEWAY_URL = "http://localhost:8080"
 
@@ -36,7 +35,7 @@ class SynapseClient:
         self.base_url = gateway_url.rstrip('/')
         self.timeout = timeout
 
-    def get_arrow(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> pa.Table:
+    def get_arrow(self, endpoint: str, params: dict[str, Any] | None = None) -> pa.Table:
         """Fetch Arrow IPC data from a REST endpoint.
 
         Args:
@@ -59,7 +58,7 @@ class SynapseClient:
     # Backward-compatible alias
     _get_arrow = get_arrow
 
-    def list_devices(self) -> List[Dict[str, Any]]:
+    def list_devices(self) -> list[dict[str, Any]]:
         """List all registered devices.
 
         Returns:
@@ -70,7 +69,7 @@ class SynapseClient:
         resp.raise_for_status()
         return resp.json()
 
-    def get_events(self, device_id: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_events(self, device_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         """Fetch recent power quality events.
 
         Args:
@@ -81,7 +80,7 @@ class SynapseClient:
             List of event objects (JSON).
         """
         url = self.base_url + '/api/v1/events'
-        params: Dict[str, Any] = {"limit": limit}
+        params: dict[str, Any] = {"limit": limit}
         if device_id:
             params["device_id"] = device_id
         resp = requests.get(url, params=params, timeout=min(self.timeout, 30))
@@ -112,8 +111,9 @@ class SynapseClient:
         """
         return self._get_arrow(f'/api/v1/devices/{device_id}/cpow/data', params or None)
 
-    def query_sql(self, query: str, device_id: Optional[str] = None,
-                  limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def query_sql(
+        self, query: str, device_id: str | None = None, limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """Execute a SELECT query via the SQL endpoint.
 
         Args:
@@ -125,7 +125,7 @@ class SynapseClient:
             Parsed JSON response (typically a list of row dicts).
         """
         url = self.base_url + '/api/v1/query/sql'
-        body: Dict[str, Any] = {"query": query}
+        body: dict[str, Any] = {"query": query}
         if device_id:
             body["device_id"] = device_id
         if limit is not None:

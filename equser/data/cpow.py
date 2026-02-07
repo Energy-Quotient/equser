@@ -6,9 +6,8 @@ float32 (legacy pre-scaled) formats automatically.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
-import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -24,7 +23,7 @@ NEUTRAL_CT_RATIO = 30
 """Neutral CT is 30x more sensitive than phase CTs in recent installations."""
 
 
-def load_cpow(file_path: Union[str, Path]) -> pa.Table:
+def load_cpow(file_path: str | Path) -> pa.Table:
     """Load a CPOW Parquet file as a raw PyArrow Table.
 
     No scaling is applied. For scaled voltage/current arrays, use
@@ -39,7 +38,7 @@ def load_cpow(file_path: Union[str, Path]) -> pa.Table:
     return pq.read_table(file_path)
 
 
-def load_cpow_scaled(file_path: Union[str, Path]) -> Dict[str, Any]:
+def load_cpow_scaled(file_path: str | Path) -> dict[str, Any]:
     """Load a CPOW Parquet file and return scaled voltage/current arrays.
 
     Handles both data formats:
@@ -62,11 +61,12 @@ def load_cpow_scaled(file_path: Union[str, Path]) -> Dict[str, Any]:
         - ``start_time``: parsed datetime from metadata, or None
         - ``sample_rate``: sample rate in Hz (SAMPLE_RATE_HZ constant)
     """
-    table = pq.read_table(file_path)
-    meta = pq.ParquetFile(file_path).metadata.metadata or {}
+    pf = pq.ParquetFile(file_path)
+    table = pf.read()
+    meta = pf.metadata.metadata or {}
 
     # Determine if scaling is needed by checking column dtype
-    is_int = str(table['VA'].type).startswith('int')
+    is_int = pa.types.is_integer(table['VA'].type)
 
     if is_int:
         vscale = float(meta[b'vscale'].decode()) if b'vscale' in meta else 1.0
@@ -75,7 +75,7 @@ def load_cpow_scaled(file_path: Union[str, Path]) -> Dict[str, Any]:
         vscale = 1.0
         iscale = 1.0
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         'table': table,
         'VA': table['VA'].to_numpy() * vscale,
         'VB': table['VB'].to_numpy() * vscale,

@@ -11,12 +11,9 @@ The ``convert`` CLI function requires the ``[daq]`` extra::
 """
 
 import os
-import logging
-
 from collections import defaultdict
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 try:
     import fastavro
@@ -24,7 +21,6 @@ except ImportError:
     fastavro = None
 
 import pyarrow as pa
-
 from pyarrow.parquet import write_table
 
 from equser.core.config import load_config
@@ -32,44 +28,45 @@ from equser.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-FIELD_DESCRIPTIONS: Dict[str, str] = {
+FIELD_DESCRIPTIONS: dict[str, str] = {
     "time_us": "Epoch time [us]",
-    "FREQ":    "Frequency [Hz]",
-    "AVRMS":   "Line A RMS voltage [V]",
-    "BVRMS":   "Line B RMS voltage [V]",
-    "CVRMS":   "Line C RMS voltage [V]",
-    "AIRMS":   "Line A RMS current [A]",
-    "BIRMS":   "Line B RMS current [A]",
-    "CIRMS":   "Line C RMS current [A]",
-    "NIRMS":   "Neutral RMS current [A]",
-    "AWATT":   "Line A active power [W]",
-    "BWATT":   "Line B active power [W]",
-    "CWATT":   "Line C active power [W]",
-    "AFVRMS":  "Line A fundamental RMS voltage [V]",
-    "BFVRMS":  "Line B fundamental RMS voltage [V]",
-    "CFVRMS":  "Line C fundamental RMS voltage [V]",
-    "AFIRMS":  "Line A fundamental RMS current [A]",
-    "BFIRMS":  "Line B fundamental RMS current [A]",
-    "CFIRMS":  "Line C fundamental RMS current [A]",
-    "AFWATT":  "Line A fundamental active power [W]",
-    "BFWATT":  "Line B fundamental active power [W]",
-    "CFWATT":  "Line C fundamental active power [W]",
-    "AFVAR":   "Line A fundamental reactive power [var]",
-    "BFVAR":   "Line B fundamental reactive power [var]",
-    "CFVAR":   "Line C fundamental reactive power [var]",
+    "FREQ": "Frequency [Hz]",
+    "AVRMS": "Line A RMS voltage [V]",
+    "BVRMS": "Line B RMS voltage [V]",
+    "CVRMS": "Line C RMS voltage [V]",
+    "AIRMS": "Line A RMS current [A]",
+    "BIRMS": "Line B RMS current [A]",
+    "CIRMS": "Line C RMS current [A]",
+    "NIRMS": "Neutral RMS current [A]",
+    "AWATT": "Line A active power [W]",
+    "BWATT": "Line B active power [W]",
+    "CWATT": "Line C active power [W]",
+    "AFVRMS": "Line A fundamental RMS voltage [V]",
+    "BFVRMS": "Line B fundamental RMS voltage [V]",
+    "CFVRMS": "Line C fundamental RMS voltage [V]",
+    "AFIRMS": "Line A fundamental RMS current [A]",
+    "BFIRMS": "Line B fundamental RMS current [A]",
+    "CFIRMS": "Line C fundamental RMS current [A]",
+    "AFWATT": "Line A fundamental active power [W]",
+    "BFWATT": "Line B fundamental active power [W]",
+    "CFWATT": "Line C fundamental active power [W]",
+    "AFVAR": "Line A fundamental reactive power [var]",
+    "BFVAR": "Line B fundamental reactive power [var]",
+    "CFVAR": "Line C fundamental reactive power [var]",
 }
 
-COLUMN_ENCODING = {field:
-                   'DELTA_BINARY_PACKED' if field == "time_us" else
-                   'BYTE_STREAM_SPLIT' for field in FIELD_DESCRIPTIONS.keys()}
+COLUMN_ENCODING = {
+    field: 'DELTA_BINARY_PACKED' if field == "time_us" else 'BYTE_STREAM_SPLIT'
+    for field in FIELD_DESCRIPTIONS.keys()
+}
 
 
 def convert_avro_to_parquet(
-    avro_path: Union[str, Path],
+    avro_path: str | Path,
     compression: str = 'ZSTD',
     compression_level: int = 4,
-    remove: bool = False
-) -> Optional[Path]:
+    remove: bool = False,
+) -> Path | None:
     """Convert Avro file to Parquet format.
 
     Handles:
@@ -144,17 +141,21 @@ def convert_avro_to_parquet(
         # datatype. Also generate the Parquet metadata.
         metadata = {}
         for field, column in data.items():
-            data[field] = pa.array(column,
-                                type=pa.uint64() if field=="time_us" else pa.float32())
+            data[field] = pa.array(column, type=pa.uint64() if field == "time_us" else pa.float32())
             metadata[field] = FIELD_DESCRIPTIONS.get(field, field)
 
         # Create the Parquet file.
         table = pa.Table.from_pydict(data, metadata=metadata)
         parquet_path = avro_path.with_suffix('.parquet')
-        write_table(table, parquet_path,
-                    use_dictionary=False, column_encoding=COLUMN_ENCODING,
-                    compression=compression, compression_level=compression_level,
-                    write_page_index=True)
+        write_table(
+            table,
+            parquet_path,
+            use_dictionary=False,
+            column_encoding=COLUMN_ENCODING,
+            compression=compression,
+            compression_level=compression_level,
+            write_page_index=True,
+        )
 
         # Only remove the source file if conversion was successful and remove flag is True
         if remove:
@@ -178,11 +179,7 @@ def convert_avro_to_parquet(
         return None
 
 
-def convert(
-    file_paths: List[str],
-    remove: bool = False,
-    config_path: Optional[str] = None
-) -> None:
+def convert(file_paths: list[str], remove: bool = False, config_path: str | None = None) -> None:
     """Convert Avro file(s) to Parquet format.
 
     Requires the ``[daq]`` extra (fastavro).
@@ -214,5 +211,5 @@ def convert(
                 fpath,
                 compression=compression_method,
                 compression_level=compression_level,
-                remove=remove
+                remove=remove,
             )

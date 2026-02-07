@@ -18,24 +18,24 @@ Library usage:
 """
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from typing import Optional, Sequence
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from collections.abc import Sequence
 
-from equser.core.paths import get_config_path
-from equser.pmon.errors import ConfigurationError, ConnectionError, DataAcquisitionError
-from equser.pmon.dataops import FIELD_DESCRIPTIONS, COLUMN_ENCODING
+from equser.pmon.dataops import COLUMN_ENCODING, FIELD_DESCRIPTIONS
+from equser.pmon.errors import ConfigurationError, DataAcquisitionError, SensorConnectionError
 
 # DAQ classes require the [daq] extra (avro, fastavro)
 try:
-    from equser.pmon.daq import PowerMonitor, acquire
-    from equser.pmon.dataops import convert, convert_avro_to_parquet
+    from equser.pmon.daq import PowerMonitor, acquire  # noqa: F401
+    from equser.pmon.dataops import convert, convert_avro_to_parquet  # noqa: F401
+
     _has_daq = True
 except ImportError:
     _has_daq = False
 
 __all__ = [
     'ConfigurationError',
-    'ConnectionError',
+    'SensorConnectionError',
     'DataAcquisitionError',
     'FIELD_DESCRIPTIONS',
     'COLUMN_ENCODING',
@@ -46,7 +46,7 @@ if _has_daq:
     __all__.extend(['PowerMonitor', 'acquire', 'convert', 'convert_avro_to_parquet'])
 
 
-def main(argv: Optional[Sequence[str]] = None, **kwargs) -> None:
+def main(argv: Sequence[str] | None = None, **kwargs) -> None:
     """Power quality monitoring CLI.
 
     Args:
@@ -59,7 +59,7 @@ def main(argv: Optional[Sequence[str]] = None, **kwargs) -> None:
     parser = ArgumentParser(
         description="Power quality monitoring tools for EQ Wave sensors",
         formatter_class=ArgumentDefaultsHelpFormatter,
-        **kwargs
+        **kwargs,
     )
 
     # Create subparsers
@@ -69,43 +69,41 @@ def main(argv: Optional[Sequence[str]] = None, **kwargs) -> None:
     acquire_parser = subparsers.add_parser(
         'acquire',
         help="Acquire power, frequency, and RMS data from EQ Wave sensor",
-        formatter_class=ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
     acquire_parser.add_argument(
-        '-c', '--config',
+        '-c',
+        '--config',
         dest='config_path',
         default=None,
-        help="Path to YAML configuration file (default: auto-detect)"
+        help="Path to YAML configuration file (default: auto-detect)",
     )
 
     # Convert command
     convert_parser = subparsers.add_parser(
         'convert',
         help="Convert Avro file(s) to Parquet format",
-        formatter_class=ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
     convert_parser.add_argument(
-        'file_paths',
-        nargs='+',
-        help="Path(s) to Avro file(s). Glob patterns are accepted."
+        'file_paths', nargs='+', help="Path(s) to Avro file(s). Glob patterns are accepted."
     )
     convert_parser.add_argument(
-        '-c', '--config',
+        '-c',
+        '--config',
         dest='config_path',
         default=None,
-        help="Path to YAML configuration file for compression settings"
+        help="Path to YAML configuration file for compression settings",
     )
     convert_parser.add_argument(
-        '--remove',
-        dest='remove',
-        action='store_true',
-        help="Remove Avro file(s) after conversion"
+        '--remove', dest='remove', action='store_true', help="Remove Avro file(s) after conversion"
     )
 
     # Try to enable argcomplete if available
     try:
         from argcomplete import autocomplete
         from argcomplete.completers import FilesCompleter
+
         # Set completers on existing actions (don't add new arguments)
         for action in acquire_parser._actions:
             if action.dest == 'config_path':
