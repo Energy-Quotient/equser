@@ -1,6 +1,5 @@
 # equser
 
-[![PyPI version](https://badge.fury.io/py/equser.svg)](https://badge.fury.io/py/equser)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -153,12 +152,10 @@ pmon:
 
 | Extra | Description | Key Packages |
 |-------|-------------|--------------|
-| *(base)* | Data loading + analysis | numpy, pyarrow, pyyaml |
+| *(base)* | Data loading, analysis, CLI | numpy, pyarrow, pyyaml, argcomplete, colorlog |
 | `[daq]` | Live sensor acquisition | avro, fastavro |
 | `[analysis]` | Plotting + API client | matplotlib, requests, websocket-client |
 | `[jupyter]` | Full notebook environment | `[analysis]` + jupyterlab, duckdb, ipywidgets |
-| `[cli]` | Tab completion | argcomplete |
-| `[color]` | Colored logging | colorlog |
 | `[dev]` | Development tools | pytest, ruff, mypy |
 | `[full]` | All of the above (except dev) | - |
 

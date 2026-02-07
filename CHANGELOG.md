@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-02-06
+## [0.1.0] - 2026-02-06
 
-First public release. Clean, open-source user toolkit for EQ Wave power quality data.
+Initial public release. User toolkit for EQ Wave power quality data.
 
 ### Modules
 - **equser.data** - Load CPOW and PMon Parquet files with automatic scaling, timestamp parsing
@@ -19,19 +19,24 @@ First public release. Clean, open-source user toolkit for EQ Wave power quality 
 - **equser.pmon** - Live sensor acquisition and Avro-to-Parquet conversion (requires `[daq]`)
 - **equser.core** - YAML configuration loading, XDG-compliant path resolution
 - **equser.utils** - Logging with optional color, DateTime with floor-division
+- **equser.notebooks** - Bundled reference notebooks with list/copy API
+- **equser.widgets** - Interactive file selector for JupyterLab (requires `[jupyter]`)
+- **equser.snapshot** - Waveform capture via gateway WebSocket
 
 ### Dependency Tiers
-- **Base**: numpy, pyarrow, pyyaml (data loading + analysis)
+- **Base**: numpy, pyarrow, pyyaml, argcomplete, colorlog (data loading, analysis, CLI)
 - **[daq]**: avro, fastavro (live sensor acquisition)
 - **[analysis]**: matplotlib, requests, websocket-client (plotting + API)
 - **[jupyter]**: `[analysis]` + jupyterlab, duckdb, ipywidgets, ipykernel, nbconvert
-- **[cli]**: argcomplete; **[color]**: colorlog; **[dev]**: pytest, ruff, mypy
-- **[full]**: all of the above (except dev)
+- **[full]**: all of the above
 
 ### CLI
 - `equser pmon acquire` - Start power monitoring from EQ Wave sensor
 - `equser pmon convert` - Convert Avro files to Parquet
 - `equser plot` - Plot PMon or CPOW data files
+- `equser notebooks list` - List bundled reference notebooks
+- `equser notebooks copy` - Copy reference notebooks to a directory
+- `equser snapshot` - Capture live waveform data to a Parquet file
 
-[Unreleased]: https://github.com/eq-systems/equser/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/eq-systems/equser/releases/tag/v0.2.0
+[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Energy-Quotient/equser/releases/tag/v0.1.0

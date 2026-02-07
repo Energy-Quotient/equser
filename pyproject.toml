@@ -45,8 +45,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-# Base dependencies: data loading + waveform analysis (~80MB)
+# Base dependencies: data loading + waveform analysis + CLI essentials
 dependencies = [
+    "argcomplete>=3.5",
+    "colorlog>=6.9",
     "numpy>=1.24",
     "pyarrow>=18.0,!=21.0.0",
     "pyyaml>=6.0",
@@ -73,14 +75,6 @@ jupyter = [
     "jupyterlab>=4.4",
     "nbconvert>=7.16",
 ]
-# CLI tab completion
-cli = [
-    "argcomplete>=3.5",
-]
-# Colored log output
-color = [
-    "colorlog>=6.9",
-]
 # Development dependencies
 dev = [
     "pytest>=8.0",
@@ -90,7 +84,7 @@ dev = [
 ]
 # Full installation (all optional deps except dev)
 full = [
-    "equser[daq,jupyter,cli,color]",
+    "equser[daq,jupyter]",
 ]
 
 [project.scripts]
