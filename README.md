@@ -1,3 +1,182 @@
 # equser
 
-User toolkit for power quality data from [EQ Wave](https://eq.systems/platform/wave) sensors.
+[![PyPI version](https://badge.fury.io/py/equser.svg)](https://badge.fury.io/py/equser)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+User toolkit for power quality data from EQ Wave sensors.
+
+## Overview
+
+equser is a Python library for loading, analyzing, and visualizing continuous
+waveform (CPOW) and power monitoring (PMon) data from EQ Wave hardware. It
+provides:
+
+- **Data loading** (`data`): Load CPOW and PMon Parquet files with automatic scaling
+- **Waveform analysis** (`analysis`): Zero-crossing detection, cycle extraction
+- **Visualization** (`plotting`): Static plots for power quality data (requires `[analysis]`)
+- **API client** (`api`): REST and WebSocket clients for EQ Synapse gateways (requires `[analysis]`)
+- **Live acquisition** (`pmon`): Real-time sensor data acquisition (requires `[daq]`)
+- **CLI tools**: Command-line interface for monitoring and conversion
+
+## Installation
+
+### Base installation (data loading + analysis)
+
+```bash
+pip install equser
+```
+
+### With plotting and API support
+
+```bash
+pip install equser[analysis]
+```
+
+### With JupyterLab notebook environment
+
+```bash
+pip install equser[jupyter]
+```
+
+### With live sensor acquisition
+
+```bash
+pip install equser[daq]
+```
+
+### Full installation (all features)
+
+```bash
+pip install equser[full]
+```
+
+## Quick Start
+
+### Load and explore CPOW data
+
+```python
+from equser.data import load_cpow_scaled
+
+result = load_cpow_scaled('20250623_075056.parquet')
+print(f"Voltage A peak: {result['VA'].max():.1f} V")
+print(f"Start time: {result['start_time']}")
+print(f"Sample rate: {result['sample_rate']} Hz")
+```
+
+### Load PMon summary data
+
+```python
+from equser.data import load_pmon
+
+table = load_pmon('20250623_0750.parquet')
+print(table.column_names)
+```
+
+### Analyze waveform zero crossings
+
+```python
+import numpy as np
+from equser.data import load_cpow_scaled, SAMPLE_RATE_HZ
+from equser.analysis import find_zero_crossings
+
+result = load_cpow_scaled('cpow_data.parquet')
+time = np.arange(len(result['VA'])) / SAMPLE_RATE_HZ
+crossings, indices = find_zero_crossings(result['VA'], time)
+print(f"Found {len(crossings)} zero crossings")
+```
+
+### Plot data (requires `[analysis]`)
+
+```python
+from equser.plotting import PowerMonitorPlotter, WaveformPlotter
+
+# Plot power monitor data
+plotter = PowerMonitorPlotter()
+plotter.plot_file('pmon_data.parquet')
+
+# Plot waveform data
+wf_plotter = WaveformPlotter()
+wf_plotter.plot_file('cpow_data.parquet')
+```
+
+### Query a gateway (requires `[analysis]`)
+
+```python
+from equser.api import SynapseClient
+
+client = SynapseClient('http://gateway:8080')
+devices = client.list_devices()
+table = client.get_pmon_data(devices[0]['id'])
+```
+
+### Command Line
+
+```bash
+# Start power monitoring (requires EQ Wave sensor + [daq])
+equser pmon acquire -c config.yaml
+
+# Convert Avro files to Parquet (requires [daq])
+equser pmon convert data/*.avro --remove
+
+# Plot data file (requires [analysis])
+equser plot data.parquet
+```
+
+## Configuration
+
+equser looks for configuration in the following locations (in order):
+
+1. `EQUSER_CONFIG` environment variable
+2. `./equser.yaml` (current directory)
+3. `~/.config/equser/config.yaml` (XDG config)
+4. `/etc/equser/config.yaml` (system-wide)
+
+Example configuration:
+
+```yaml
+sensor:
+  address: "192.168.10.10"
+  port: 1535
+
+pmon:
+  connection:
+    retry_delay: 3
+  parquet:
+    interval: 86400
+    compression:
+      method: ZSTD
+      level: 4
+```
+
+## Dependency Tiers
+
+| Extra | Description | Key Packages |
+|-------|-------------|--------------|
+| *(base)* | Data loading + analysis | numpy, pyarrow, pyyaml |
+| `[daq]` | Live sensor acquisition | avro, fastavro |
+| `[analysis]` | Plotting + API client | matplotlib, requests, websocket-client |
+| `[jupyter]` | Full notebook environment | `[analysis]` + jupyterlab, duckdb, ipywidgets |
+| `[cli]` | Tab completion | argcomplete |
+| `[color]` | Colored logging | colorlog |
+| `[dev]` | Development tools | pytest, ruff, mypy |
+| `[full]` | All of the above (except dev) | - |
+
+## Requirements
+
+- Python 3.10 or later
+- Linux (for hardware integration features)
+
+## Documentation
+
+- [API Documentation](https://eq.systems/platform/equser)
+- [Changelog](CHANGELOG.md)
+
+## License
+
+MIT License - Copyright (c) 2026 EQ Systems Inc.
+
+## About
+
+equser is developed by [Energy Quotient](https://eq.systems) as part of the
+EQ Synapse platform for continuous waveform intelligence in power systems.
