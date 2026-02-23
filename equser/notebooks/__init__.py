@@ -1,7 +1,7 @@
 """Bundled reference notebooks for EQ Synapse data analysis.
 
-Provides functions to list, locate, and copy the reference notebooks that
-ship inside the ``equser`` wheel. Notebooks are organised into two
+Provides functions to list, locate, copy, and describe the reference notebooks
+that ship inside the ``equser`` wheel. Notebooks are organised into two
 categories:
 
 - **tutorials/** -- step-by-step introductions to data loading, the REST API,
@@ -11,11 +11,15 @@ categories:
 
 Example::
 
-    from equser.notebooks import list_notebooks, copy_notebooks
+    from equser.notebooks import list_notebooks, copy_notebooks, describe_notebooks
 
     # See what is available
     for nb in list_notebooks():
         print(nb)
+
+    # Rich metadata (title, description) extracted from each notebook
+    for info in describe_notebooks():
+        print(f"{info['path']}: {info['title']}")
 
     # Copy all notebooks to a working directory
     copy_notebooks('/var/lib/eq-sight/notebooks')
@@ -26,10 +30,10 @@ CLI usage::
     equser notebooks copy --dest /var/lib/eq-sight/notebooks
 """
 
+import json
 import shutil
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 if sys.version_info >= (3, 11):
     from importlib.resources import files as _resource_files
@@ -56,6 +60,104 @@ def list_notebooks() -> list[str]:
     for nb in sorted(root.rglob("*.ipynb")):
         notebooks.append(str(nb.relative_to(root)))
     return notebooks
+
+
+def describe_notebooks(category: str | None = None) -> list[dict]:
+    """Return metadata for each bundled notebook.
+
+    Reads each notebook's first markdown cell to extract a title and
+    description, so the results stay in sync with the actual notebook
+    contents.
+
+    Args:
+        category: Optional filter -- ``'tutorials'`` or ``'analysis'``.
+            If ``None``, returns all notebooks.
+
+    Returns:
+        List of dicts, each with keys:
+
+        - **path** -- relative path (e.g. ``'tutorials/01-parquet-files.ipynb'``)
+        - **category** -- directory name (``'tutorials'`` or ``'analysis'``)
+        - **title** -- first ``#`` heading from the notebook
+        - **description** -- first paragraph after the heading (may be empty)
+    """
+    root = _package_dir()
+    results: list[dict] = []
+
+    for rel in list_notebooks():
+        cat = rel.split("/")[0] if "/" in rel else ""
+        if category and cat != category:
+            continue
+
+        nb_path = root / rel
+        title, description = _extract_notebook_metadata(nb_path)
+
+        results.append({
+            "path": rel,
+            "category": cat,
+            "title": title,
+            "description": description,
+        })
+
+    return results
+
+
+def _extract_notebook_metadata(nb_path: Path) -> tuple[str, str]:
+    """Extract the title and description from a notebook's first markdown cell.
+
+    Returns:
+        A ``(title, description)`` tuple.  Falls back to the filename
+        (without extension) if no heading is found.
+    """
+    fallback_title = nb_path.stem.replace("-", " ").replace("_", " ").strip()
+
+    try:
+        data = json.loads(nb_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return fallback_title, ""
+
+    for cell in data.get("cells", []):
+        if cell.get("cell_type") != "markdown":
+            continue
+
+        lines = cell.get("source", [])
+        if isinstance(lines, str):
+            lines = lines.splitlines(True)
+
+        # Find the first '# …' heading
+        title = ""
+        heading_idx = -1
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                title = stripped.lstrip("# ").strip()
+                heading_idx = i
+                break
+
+        if not title:
+            return fallback_title, ""
+
+        # Collect the description: non-empty lines after the heading,
+        # stopping at the next heading, section marker, or blank line
+        # that follows at least one description line.
+        desc_lines: list[str] = []
+        for line in lines[heading_idx + 1 :]:
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                break
+            if stripped.startswith("**") and stripped.endswith("**"):
+                # Section list like "**Sections:**" -- stop
+                break
+            if not stripped:
+                if desc_lines:
+                    break
+                continue  # skip leading blank lines
+            desc_lines.append(stripped)
+
+        description = " ".join(desc_lines)
+        return title, description
+
+    return fallback_title, ""
 
 
 def get_notebook_path(name: str) -> Path:

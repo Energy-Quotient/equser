@@ -16,12 +16,14 @@ class TestListNotebooks:
     def test_contains_expected_notebooks(self):
         result = list_notebooks()
         expected = [
+            "analysis/ai-event-analysis.ipynb",
             "analysis/delta-analysis.ipynb",
             "analysis/harmonic-analysis.ipynb",
             "analysis/power-trends.ipynb",
             "tutorials/01-parquet-files.ipynb",
-            "tutorials/02-backend-api.ipynb",
-            "tutorials/03-live-streaming.ipynb",
+            "tutorials/02-local-duckdb.ipynb",
+            "tutorials/03-backend-api.ipynb",
+            "tutorials/04-live-streaming.ipynb",
         ]
         assert result == expected
 
@@ -87,10 +89,10 @@ class TestCopyNotebooks:
         dest = tmp_path / "notebooks"
         copied = copy_notebooks(str(dest), category="tutorials")
         assert all("tutorials/" in str(p) for p in copied)
-        assert len(copied) == 3
+        assert len(copied) == 4
 
     def test_analysis_category(self, tmp_path):
         dest = tmp_path / "notebooks"
         copied = copy_notebooks(str(dest), category="analysis")
         assert all("analysis/" in str(p) for p in copied)
-        assert len(copied) == 3
+        assert len(copied) == 4
