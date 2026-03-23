@@ -150,7 +150,7 @@ class TestParseFilenameTimestamp:
         assert dt == datetime(2025, 6, 23, 7, 50, 56)
 
     def test_full_path(self):
-        dt = parse_filename_timestamp('/var/lib/eq-synapse/data/pmon/20250623_0750.parquet')
+        dt = parse_filename_timestamp('/var/lib/eq-watch/data/pmon/20250623_0750.parquet')
         assert dt == datetime(2025, 6, 23, 7, 50)
 
     def test_no_match(self):
