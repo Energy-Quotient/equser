@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-02-06
+## [0.0.2] - 2026-04-11
+
+### Changed
+- `load_cpow_scaled()` now reads v3 schema metadata and returns additional keys:
+  `schema_version`, `topology`, and `neutral_connected`.
+- CPOW channel arrays are now explicitly promoted to float64 before applying
+  the scale factor, preserving the full 24-bit ADC dynamic range for v3 int32
+  files.
+
+### Added
+- `CYCLE_START_CHANNELS` constant listing the optional v3 phase cycle-boundary
+  columns (`cycle_start_a`, `cycle_start_b`, `cycle_start_c`).
+- `load_cpow_scaled()` returns `cycle_start_a`, `cycle_start_b`, and
+  `cycle_start_c` as numpy int64 arrays when those columns are present in the
+  file. Values are nanoseconds since epoch; zero means no boundary at that
+  sample.
+
+## [0.0.1] - 2026-02-06
 
 Initial public release. User toolkit for EQ Wave power quality data.
 
@@ -38,5 +55,6 @@ Initial public release. User toolkit for EQ Wave power quality data.
 - `equser notebooks copy` - Copy reference notebooks to a directory
 - `equser snapshot` - Capture live waveform data to a Parquet file
 
-[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Energy-Quotient/equser/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/Energy-Quotient/equser/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/Energy-Quotient/equser/releases/tag/v0.0.1

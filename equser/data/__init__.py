@@ -20,6 +20,7 @@ Usage::
 
 from equser.data.cpow import (
     CHANNELS,
+    CYCLE_START_CHANNELS,
     NEUTRAL_CT_RATIO,
     SAMPLE_RATE_HZ,
     load_cpow,
@@ -36,6 +37,7 @@ from equser.data.timestamps import (
 
 __all__ = [
     'CHANNELS',
+    'CYCLE_START_CHANNELS',
     'FIELD_DESCRIPTIONS',
     'NEUTRAL_CT_RATIO',
     'SAMPLE_RATE_HZ',
