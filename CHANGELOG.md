@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `RELEASE.md` documenting the PyPI release procedure.
+
 ### Fixed
 - `load_cpow_scaled()` now reads scaling metadata (`iscale`, `vscale`,
   `schema_version`, `topology`, `neutral_connected`, `start_time`) from the
