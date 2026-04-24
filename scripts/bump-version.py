@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-VERSION_FILE = Path(__file__).parent.parent / "_version.py"
+VERSION_FILE = Path(__file__).parent.parent / "equser" / "_version.py"
 
 
 def read_version() -> str:

@@ -50,7 +50,7 @@ if [[ "$1" == "--test" ]]; then
 fi
 
 # Get version from _version.py
-VERSION=$(python3 -c "exec(open('_version.py').read()); print(__version__)")
+VERSION=$(python3 -c "exec(open('equser/_version.py').read()); print(__version__)")
 echo_step "Preparing release for equser v${VERSION}"
 
 # Check for uncommitted changes

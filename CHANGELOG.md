@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Arrow schema. Production CPOW files carry these on the schema only; the
   previous implementation read the Parquet footer key-value map and silently
   returned `iscale=1.0` on those files.
+- `scripts/bump-version.py` and `scripts/release.sh` now look for
+  `equser/_version.py` in the correct location; previously both scripts
+  referenced a non-existent repo-root path.
 
 ## [0.0.2] - 2026-04-11
 
