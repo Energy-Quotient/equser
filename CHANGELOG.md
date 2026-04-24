@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `load_cpow_scaled()` now reads scaling metadata (`iscale`, `vscale`,
+  `schema_version`, `topology`, `neutral_connected`, `start_time`) from the
+  Arrow schema. Production CPOW files carry these on the schema only; the
+  previous implementation read the Parquet footer key-value map and silently
+  returned `iscale=1.0` on those files.
+
 ## [0.0.2] - 2026-04-11
 
 ### Changed

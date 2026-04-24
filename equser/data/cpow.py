@@ -83,7 +83,8 @@ def load_cpow_scaled(file_path: str | Path) -> dict[str, Any]:
     """
     pf = pq.ParquetFile(file_path)
     table = pf.read()
-    meta = pf.metadata.metadata or {}
+    # Producer metadata is carried on the Arrow schema, not the Parquet footer.
+    meta = pf.schema_arrow.metadata or {}
 
     # Determine if scaling is needed by checking column dtype
     is_int = pa.types.is_integer(table['VA'].type)
