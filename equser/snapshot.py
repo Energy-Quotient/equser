@@ -12,6 +12,20 @@ Usage from CLI::
     equser snapshot
     equser snapshot --duration 10
     equser snapshot --host 192.168.1.100 --duration 5 --output capture.parquet
+
+Wire format (`/api/ws/cpow_stream` binary frames)::
+
+    Byte  0:     0x01  (frame magic — identifies a cycle frame)
+    Byte  1:     pll_locked      (u8: 1=locked, 0=not locked)
+    Bytes 2–5:   trigger_offset_ms (f32 little-endian)
+    Bytes 6–9:   cycle_period_ms   (f32 little-endian)
+    Byte  10:    cycle_count       (u8)
+    Bytes 11+:   Arrow IPC stream payload (1+ record batches)
+
+The 11-byte header is stripped before the Arrow IPC reader sees the
+payload; otherwise pyarrow reads the magic byte as the start of a
+metadata length and fails with "Invalid IPC stream: negative
+continuation token".
 """
 
 import json
@@ -24,6 +38,9 @@ import pyarrow.ipc as ipc
 import pyarrow.parquet as pq
 
 SAMPLE_RATE = 32_000
+
+CPOW_FRAME_HEADER_LEN = 11
+CPOW_FRAME_MAGIC = 0x01
 
 
 def capture(
@@ -76,7 +93,10 @@ def capture(
             opcode, data = ws.recv_data()
 
             if opcode == 0x02:  # Binary
-                reader = ipc.open_stream(data)
+                if len(data) < CPOW_FRAME_HEADER_LEN or data[0] != CPOW_FRAME_MAGIC:
+                    # Skip frames we don't recognise (future header types).
+                    continue
+                reader = ipc.open_stream(data[CPOW_FRAME_HEADER_LEN:])
                 for batch in reader:
                     batches.append(batch)
                     total_samples += len(batch)

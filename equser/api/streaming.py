@@ -3,6 +3,9 @@
 Requires the ``[analysis]`` extra (websocket-client)::
 
     pip install equser[analysis]
+
+CPOW WebSocket binary frames carry an 11-byte header before the Arrow
+IPC payload — see ``equser.snapshot`` for the layout.
 """
 
 import json
@@ -14,15 +17,18 @@ import websocket
 
 DEFAULT_GATEWAY_URL = "http://localhost:8080"
 
+CPOW_FRAME_HEADER_LEN = 11
+CPOW_FRAME_MAGIC = 0x01
+
 
 def connect_cpow_stream(
     gateway_url: str | None = None,
 ) -> Generator[Any | dict[str, Any], None, None]:
     """Connect to the CPOW waveform WebSocket and yield Arrow RecordBatches.
 
-    Each binary message is an Arrow IPC RecordBatch containing ~512 rows
-    (16 ms at 32 kHz). Text messages are JSON gap markers of the form
-    ``{"type": "gap", "skipped_samples": N}``.
+    Each binary message is an 11-byte cycle header followed by an Arrow
+    IPC RecordBatch (~512 rows = 16 ms at 32 kHz). Text messages are
+    JSON gap markers of the form ``{"type": "gap", "skipped_samples": N}``.
 
     Args:
         gateway_url: Base URL (default: http://localhost:8080).
@@ -39,7 +45,9 @@ def connect_cpow_stream(
         while True:
             opcode, data = ws.recv_data()
             if opcode == websocket.ABNF.OPCODE_BINARY:
-                reader = ipc.open_stream(data)
+                if len(data) < CPOW_FRAME_HEADER_LEN or data[0] != CPOW_FRAME_MAGIC:
+                    continue
+                reader = ipc.open_stream(data[CPOW_FRAME_HEADER_LEN:])
                 for batch in reader:
                     yield batch
             elif opcode == websocket.ABNF.OPCODE_TEXT:
