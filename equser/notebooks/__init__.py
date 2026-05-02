@@ -1,4 +1,4 @@
-"""Bundled reference notebooks for EQ Synapse data analysis.
+"""Bundled reference notebooks for EQ gateway data analysis.
 
 Provides functions to list, locate, copy, and describe the reference notebooks
 that ship inside the ``equser`` wheel. Notebooks are organised into two

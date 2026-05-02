@@ -1,4 +1,4 @@
-"""Capture live CPOW waveform data from an EQ Synapse gateway.
+"""Capture live CPOW waveform data from an EQ gateway.
 
 Connects to the gateway's CPOW WebSocket stream, collects a configurable
 duration of waveform data, and writes the result to a timestamped parquet file.

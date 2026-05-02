@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed `SynapseClient` to `CoherenceClient` to reflect the EQ Coherence™ brand for the gateway software (formerly EQ Synapse / EQ Watch). `SynapseClient` is preserved as a module-level backward-compatible alias, so existing code using `from equser.api import SynapseClient` continues to work without modification.
+- Updated docstrings and brand text throughout (`equser.api`, `equser.api.streaming`, `equser.snapshot`, `equser.notebooks`, README, CHANGELOG note for v0.0.1) to reference EQ Coherence™.
+
 ## [0.0.3] - 2026-04-23
 
 ### Added
@@ -46,7 +50,7 @@ Initial public release. User toolkit for EQ Wave power quality data.
 ### Modules
 - **equser.data** - Load CPOW and PMon Parquet files with automatic scaling, timestamp parsing
 - **equser.analysis** - Waveform analysis: zero-crossing detection, AC cycle extraction
-- **equser.api** - REST and WebSocket clients for EQ Synapse gateways (requires `[analysis]`)
+- **equser.api** - REST and WebSocket clients for EQ gateways (requires `[analysis]`; class was originally named `SynapseClient`, renamed to `CoherenceClient` in [Unreleased] with backward-compat alias preserved)
 - **equser.plotting** - Static matplotlib plots for PMon and CPOW data (requires `[analysis]`)
 - **equser.pmon** - Live sensor acquisition and Avro-to-Parquet conversion (requires `[daq]`)
 - **equser.core** - YAML configuration loading, XDG-compliant path resolution

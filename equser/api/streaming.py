@@ -1,4 +1,4 @@
-"""WebSocket streaming clients for real-time EQ Synapse data.
+"""WebSocket streaming clients for real-time EQ gateway data.
 
 Requires the ``[analysis]`` extra (websocket-client)::
 

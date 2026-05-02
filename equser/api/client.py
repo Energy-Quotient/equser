@@ -1,4 +1,4 @@
-"""REST API client for EQ Synapse gateways.
+"""REST API client for EQ gateways (running EQ Coherence™ software).
 
 Requires the ``[analysis]`` extra::
 
@@ -14,8 +14,8 @@ import requests
 DEFAULT_GATEWAY_URL = "http://localhost:8080"
 
 
-class SynapseClient:
-    """Client for the EQ Synapse REST API.
+class CoherenceClient:
+    """Client for the EQ Coherence™ REST API.
 
     Provides typed access to device listing, power monitor data, CPOW data,
     events, and SQL queries.
@@ -26,7 +26,7 @@ class SynapseClient:
 
     Example::
 
-        client = SynapseClient('http://192.168.10.1:8080')
+        client = CoherenceClient('http://192.168.10.1:8080')
         devices = client.list_devices()
         table = client.get_pmon_data(devices[0]['id'])
     """
@@ -133,3 +133,10 @@ class SynapseClient:
         resp = requests.post(url, json=body, timeout=self.timeout)
         resp.raise_for_status()
         return resp.json()
+
+
+# Backward-compatible alias. SynapseClient was the original class name when
+# the gateway software was branded EQ Synapse (later EQ Watch). The current
+# brand is EQ Coherence™; SynapseClient is preserved so existing user code
+# continues to work without modification.
+SynapseClient = CoherenceClient

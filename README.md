@@ -14,7 +14,7 @@ provides:
 - **Data loading** (`data`): Load CPOW and PMon Parquet files with automatic scaling
 - **Waveform analysis** (`analysis`): Zero-crossing detection, cycle extraction
 - **Visualization** (`plotting`): Static plots for power quality data (requires `[analysis]`)
-- **API client** (`api`): REST and WebSocket clients for EQ Synapse gateways (requires `[analysis]`)
+- **API client** (`api`): REST and WebSocket clients for EQ gateways (requires `[analysis]`)
 - **Live acquisition** (`pmon`): Real-time sensor data acquisition (requires `[daq]`)
 - **CLI tools**: Command-line interface for monitoring and conversion
 
@@ -102,12 +102,14 @@ wf_plotter.plot_file('cpow_data.parquet')
 ### Query a gateway (requires `[analysis]`)
 
 ```python
-from equser.api import SynapseClient
+from equser.api import CoherenceClient
 
-client = SynapseClient('http://gateway:8080')
+client = CoherenceClient('http://gateway:8080')
 devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
 ```
+
+> The class was previously named `SynapseClient`; that name is preserved as a module-level alias for backward compatibility, so existing code using `from equser.api import SynapseClient` continues to work without modification.
 
 ### Command Line
 
@@ -175,5 +177,4 @@ MIT License — © 2026 EQ Systems Inc.
 
 ## About
 
-equser is developed by [Energy Quotient](https://eq.systems) as part of the
-EQ Synapse platform for continuous waveform intelligence in power systems.
+equser is developed by [Energy Quotient](https://eq.systems) for continuous waveform intelligence in power systems. It provides Python access to data from EQ gateways (which run EQ Coherence™ software; the underlying Debian package is currently named `eq-synapse`, pending rename to `eq-coherence` per syntropy-repo SEP-058).
