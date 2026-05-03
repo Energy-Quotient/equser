@@ -15,48 +15,92 @@ except ImportError:
 pytestmark = pytest.mark.skipif(not HAS_REQUESTS, reason="requests not installed")
 
 
-class TestCoherenceClient:
+class TestGatewayClient:
     def test_default_url(self):
-        from equser.api.client import CoherenceClient
-        client = CoherenceClient()
+        from equser.api.client import GatewayClient
+        client = GatewayClient()
         assert client.base_url == 'http://localhost:8080'
 
     def test_custom_url(self):
-        from equser.api.client import CoherenceClient
-        client = CoherenceClient('http://192.168.10.1:8080/')
+        from equser.api.client import GatewayClient
+        client = GatewayClient('http://192.168.10.1:8080/')
         assert client.base_url == 'http://192.168.10.1:8080'
 
     def test_custom_timeout(self):
-        from equser.api.client import CoherenceClient
-        client = CoherenceClient(timeout=120)
+        from equser.api.client import GatewayClient
+        client = GatewayClient(timeout=120)
         assert client.timeout == 120
 
     def test_url_trailing_slash_stripped(self):
-        from equser.api.client import CoherenceClient
-        client = CoherenceClient('http://host:8080///')
+        from equser.api.client import GatewayClient
+        client = GatewayClient('http://host:8080///')
         assert not client.base_url.endswith('/')
 
 
 class TestSynapseClientAlias:
-    """Regression coverage for the backward-compatible SynapseClient alias.
+    """Regression coverage for the deprecated SynapseClient alias.
 
-    SynapseClient was renamed to CoherenceClient when the gateway software
-    rebranded from EQ Synapse / EQ Watch to EQ Coherence™. The old name is
-    preserved as a module-level alias so existing user code keeps working.
+    SynapseClient was the original class name from the EQ Synapse / EQ Watch
+    era. The class is now named GatewayClient (addresses one EQ gateway over
+    REST). SynapseClient is preserved as a deprecated module-level alias so
+    existing user code keeps working; importing it emits a DeprecationWarning
+    so users see the migration signal.
     """
 
-    def test_alias_is_coherence_client(self):
-        from equser.api.client import CoherenceClient, SynapseClient
-        assert SynapseClient is CoherenceClient
+    def test_alias_emits_deprecation_warning_on_client_module(self):
+        import warnings
+        import equser.api.client as api_client
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", DeprecationWarning)
+            cls = api_client.__getattr__('SynapseClient')
+        assert cls is api_client.GatewayClient
+        assert any(
+            issubclass(w.category, DeprecationWarning) and 'SynapseClient' in str(w.message)
+            for w in caught
+        ), "Importing SynapseClient should emit a DeprecationWarning"
+
+    def test_alias_emits_deprecation_warning_on_package(self):
+        import warnings
+        import equser.api as api
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", DeprecationWarning)
+            cls = api.__getattr__('SynapseClient')
+        assert cls is api.GatewayClient
+        assert any(
+            issubclass(w.category, DeprecationWarning) and 'SynapseClient' in str(w.message)
+            for w in caught
+        ), "Importing SynapseClient from equser.api should emit a DeprecationWarning"
+
+    def test_alias_is_gateway_client(self):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            from equser.api.client import GatewayClient, SynapseClient
+        assert SynapseClient is GatewayClient
 
     def test_alias_constructible(self):
-        from equser.api.client import SynapseClient
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            from equser.api.client import SynapseClient
         client = SynapseClient('http://192.168.10.1:8080')
         assert client.base_url == 'http://192.168.10.1:8080'
 
     def test_alias_imports_from_package(self):
-        from equser.api import CoherenceClient, SynapseClient
-        assert SynapseClient is CoherenceClient
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            from equser.api import GatewayClient, SynapseClient
+        assert SynapseClient is GatewayClient
+
+    def test_alias_unknown_attribute_raises(self):
+        import equser.api.client as api_client
+        try:
+            _ = api_client.NotAThing
+        except AttributeError as e:
+            assert 'NotAThing' in str(e)
+        else:
+            raise AssertionError("__getattr__ should raise AttributeError for unknown names")
 
 
 class TestStreaming:

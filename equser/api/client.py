@@ -14,11 +14,13 @@ import requests
 DEFAULT_GATEWAY_URL = "http://localhost:8080"
 
 
-class CoherenceClient:
-    """Client for the EQ Coherence™ REST API.
+class GatewayClient:
+    """Client for the EQ gateway REST API (provided by EQ Coherence™ software at port 8080).
 
     Provides typed access to device listing, power monitor data, CPOW data,
-    events, and SQL queries.
+    events, and SQL queries on a single gateway. For server-side cross-site
+    queries against the aggregated datalake, use a future ``DatalakeClient``
+    (not yet implemented).
 
     Args:
         gateway_url: Base URL of the gateway (default: http://localhost:8080).
@@ -26,7 +28,7 @@ class CoherenceClient:
 
     Example::
 
-        client = CoherenceClient('http://192.168.10.1:8080')
+        client = GatewayClient('http://192.168.10.1:8080')
         devices = client.list_devices()
         table = client.get_pmon_data(devices[0]['id'])
     """
@@ -135,8 +137,28 @@ class CoherenceClient:
         return resp.json()
 
 
-# Backward-compatible alias. SynapseClient was the original class name when
-# the gateway software was branded EQ Synapse (later EQ Watch). The current
-# brand is EQ Coherence™; SynapseClient is preserved so existing user code
-# continues to work without modification.
-SynapseClient = CoherenceClient
+# Deprecated backward-compatible alias for `GatewayClient`.
+#
+# SynapseClient was the original class name from when the gateway software
+# was branded EQ Synapse (later EQ Watch). The class is now GatewayClient
+# (it addresses one EQ gateway over REST). The old name still resolves so
+# existing user code keeps working, but importing SynapseClient now emits
+# a DeprecationWarning so users see the migration signal.
+#
+# TODO(post-migration): remove this `__getattr__` hook (and references to
+# SynapseClient in `equser.api.__init__` and the docs) once known users
+# (currently BlueField primarily) have migrated. Plan a removal release
+# after at least one minor version with the deprecation warning in place.
+
+def __getattr__(name):
+    if name == 'SynapseClient':
+        import warnings
+        warnings.warn(
+            "SynapseClient is deprecated and will be removed in a future "
+            "release; use GatewayClient instead "
+            "(`from equser.api import GatewayClient`).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return GatewayClient
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

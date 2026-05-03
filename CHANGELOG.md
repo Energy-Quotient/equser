@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Renamed `SynapseClient` to `CoherenceClient` to reflect the EQ Coherence™ brand for the gateway software (formerly EQ Synapse / EQ Watch). `SynapseClient` is preserved as a module-level backward-compatible alias, so existing code using `from equser.api import SynapseClient` continues to work without modification.
-- Updated docstrings and brand text throughout (`equser.api`, `equser.api.streaming`, `equser.snapshot`, `equser.notebooks`, README, CHANGELOG note for v0.0.1) to reference EQ Coherence™.
+- Renamed `SynapseClient` to `GatewayClient`. The class addresses one EQ gateway over REST; the new name matches the addressing model (the gateway is the unit you connect to). (A future `DatalakeClient` will be added as a sibling for cross-site queries against the server-side aggregated datalake.)
+- Updated docstrings and brand text throughout (`equser.api`, `equser.api.streaming`, `equser.snapshot`, `equser.notebooks`, README, CHANGELOG note for v0.0.1) to use "EQ gateway" for the hardware and reference EQ Coherence™ where the gateway-internal software is meant.
+
+### Deprecated
+- `SynapseClient` is now a deprecated module-level alias for `GatewayClient`. Importing it (from `equser.api` or `equser.api.client`) still resolves to `GatewayClient` so existing user code keeps working, but emits a `DeprecationWarning` so users see the migration signal. The alias and its `__getattr__` hooks will be removed in a future release; migrate to `from equser.api import GatewayClient`.
 
 ## [0.0.3] - 2026-04-23
 
@@ -50,7 +53,7 @@ Initial public release. User toolkit for EQ Wave power quality data.
 ### Modules
 - **equser.data** - Load CPOW and PMon Parquet files with automatic scaling, timestamp parsing
 - **equser.analysis** - Waveform analysis: zero-crossing detection, AC cycle extraction
-- **equser.api** - REST and WebSocket clients for EQ gateways (requires `[analysis]`; class was originally named `SynapseClient`, renamed to `CoherenceClient` in [Unreleased] with backward-compat alias preserved)
+- **equser.api** - REST and WebSocket clients for EQ gateways (requires `[analysis]`; class was originally named `SynapseClient`, renamed to `GatewayClient` in [Unreleased]; `SynapseClient` preserved as a deprecated backward-compat alias)
 - **equser.plotting** - Static matplotlib plots for PMon and CPOW data (requires `[analysis]`)
 - **equser.pmon** - Live sensor acquisition and Avro-to-Parquet conversion (requires `[daq]`)
 - **equser.core** - YAML configuration loading, XDG-compliant path resolution

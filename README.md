@@ -102,14 +102,14 @@ wf_plotter.plot_file('cpow_data.parquet')
 ### Query a gateway (requires `[analysis]`)
 
 ```python
-from equser.api import CoherenceClient
+from equser.api import GatewayClient
 
-client = CoherenceClient('http://gateway:8080')
+client = GatewayClient('http://gateway:8080')
 devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
 ```
 
-> The class was previously named `SynapseClient`; that name is preserved as a module-level alias for backward compatibility, so existing code using `from equser.api import SynapseClient` continues to work without modification.
+> The class was previously named `SynapseClient`; that name is preserved as a deprecated module-level alias and still resolves to `GatewayClient`, so existing code using `from equser.api import SynapseClient` continues to work without modification. Importing the alias emits a `DeprecationWarning`; the alias will be removed in a future release. Migrate to `from equser.api import GatewayClient`. (A future `DatalakeClient` will provide cross-site queries against the server-side aggregated datalake; the gateway-vs-datalake split mirrors the addressing model.)
 
 ### Command Line
 
