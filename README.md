@@ -109,7 +109,7 @@ devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
 ```
 
-> The class was previously named `SynapseClient`; that name is preserved as a deprecated module-level alias and still resolves to `GatewayClient`, so existing code using `from equser.api import SynapseClient` continues to work without modification. Importing the alias emits a `DeprecationWarning`; the alias will be removed in a future release. Migrate to `from equser.api import GatewayClient`. (A future `DatalakeClient` will provide cross-site queries against the server-side aggregated datalake; the gateway-vs-datalake split mirrors the addressing model.)
+> Previously named `SynapseClient`; the old name still works but emits a `DeprecationWarning`. Migrate to `GatewayClient`.
 
 ### Command Line
 
@@ -177,4 +177,4 @@ MIT License — © 2026 EQ Systems Inc.
 
 ## About
 
-equser is developed by [Energy Quotient](https://eq.systems) for continuous waveform intelligence in power systems. It provides Python access to data from EQ gateways (which run EQ Coherence™ software; the underlying Debian package is currently named `eq-synapse`, pending rename to `eq-coherence` per syntropy-repo SEP-058).
+equser is developed by [Energy Quotient](https://eq.systems) for continuous waveform intelligence in power systems. It provides Python access to data from EQ gateways running EQ Coherence™ software.
