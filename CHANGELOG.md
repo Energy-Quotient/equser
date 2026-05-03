@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-05-02
+
 ### Changed
 - Renamed `SynapseClient` to `GatewayClient`. The class addresses one EQ gateway over REST; the new name matches the addressing model (the gateway is the unit you connect to). (A future `DatalakeClient` will be added as a sibling for cross-site queries against the server-side aggregated datalake.)
 - Updated docstrings and brand text throughout (`equser.api`, `equser.api.streaming`, `equser.snapshot`, `equser.notebooks`, README, CHANGELOG note for v0.0.1) to use "EQ gateway" for the hardware and reference EQ Coherence™ where the gateway-internal software is meant.
 
 ### Deprecated
 - `SynapseClient` is now a deprecated module-level alias for `GatewayClient`. Importing it (from `equser.api` or `equser.api.client`) still resolves to `GatewayClient` so existing user code keeps working, but emits a `DeprecationWarning` so users see the migration signal. The alias and its `__getattr__` hooks will be removed in a future release; migrate to `from equser.api import GatewayClient`.
+
+### Fixed
+- `connect_cpow_stream` now strips the 11-byte cycle header before Arrow IPC parse (commit `e3879fe`). Resolves a parse error on real CPOW WebSocket streams that include the cycle header prefix.
 
 ## [0.0.3] - 2026-04-23
 
