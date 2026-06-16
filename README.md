@@ -109,8 +109,6 @@ devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
 ```
 
-> Previously named `SynapseClient`; the old name still works but emits a `DeprecationWarning`. Migrate to `GatewayClient`.
-
 ### Command Line
 
 ```bash
@@ -123,6 +121,49 @@ equser pmon convert data/*.avro --remove
 # Plot data file (requires [analysis])
 equser plot data.parquet
 ```
+
+## Reference notebooks
+
+equser bundles a set of tutorial and analysis notebooks inside the installed
+package, so they travel with `pip install` (no separate download). Because they
+live under `site-packages`, use the CLI rather than hunting for the path:
+
+```bash
+# One step: copy the notebooks into ./equser-notebooks and open JupyterLab there
+equser notebooks launch
+
+# Or copy them into a directory of your choice (then open however you like)
+equser notebooks copy --dest ~/eq-notebooks
+
+# See what's bundled, or print where they live
+equser notebooks list
+equser notebooks path                                  # the bundled directory
+equser notebooks path tutorials/03-backend-api.ipynb   # a specific notebook
+```
+
+`launch` requires the JupyterLab environment (`pip install equser[jupyter]`).
+
+From inside an already-running JupyterLab, you can pull a writable copy into the
+current folder in one cell:
+
+```python
+from equser.notebooks import copy_notebooks, get_notebooks_dir
+copy_notebooks('.')          # writes tutorials/ and analysis/ here
+print(get_notebooks_dir())   # or just locate the read-only originals
+```
+
+Bundled notebooks:
+
+| Notebook | What it covers |
+|----------|----------------|
+| `tutorials/01-parquet-files.ipynb` | Load and plot CPOW/PMon data from parquet files |
+| `tutorials/02-local-duckdb.ipynb` | Query parquet files with SQL via DuckDB |
+| `tutorials/03-backend-api.ipynb` | Query a gateway over the REST API |
+| `tutorials/04-live-streaming.ipynb` | Live CPOW and spectral WebSocket streaming |
+| `analysis/harmonic-analysis.ipynb` | FFT-based harmonic analysis (IEEE 519) |
+| `analysis/power-trends.ipynb` | Long-term voltage, frequency, and power trends |
+| `analysis/delta-analysis.ipynb` | Delta-configuration analysis |
+| `analysis/ai-event-analysis.ipynb` | AI event analysis via the RAG API (needs demo access) |
 
 ## Configuration
 

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed the deprecated `SynapseClient` alias and its `__getattr__` hooks from
+  `equser.api` and `equser.api.client` (deprecated in 0.0.4). Importing
+  `SynapseClient` now raises; use `GatewayClient`.
+
+### Added
+- `equser notebooks launch` copies the bundled notebooks to a directory
+  (default `./equser-notebooks`) and opens JupyterLab there, and
+  `equser notebooks path [NAME]` prints the install location of the notebooks
+  (or one notebook). New public helper `equser.notebooks.get_notebooks_dir()`
+  returns the bundled notebooks directory. These address the difficulty of
+  finding the notebooks inside `site-packages` after `pip install`.
+- README "Reference notebooks" section documenting how to locate, copy, and
+  launch the bundled notebooks (CLI and in-notebook one-liner).
+
+### Changed
+- `GatewayClient.list_devices()` and `GatewayClient.get_events()` now unwrap the
+  gateway's JSON envelope and return the bare list. The gateway returns
+  `{"timezone", "devices": [...]}` and `{"events": [...], "count"}` respectively;
+  the client previously returned the whole dict, so `len()`/indexing in the
+  tutorials failed. Aligns with EQ gateway software v3.8.
+- `connect_spectral_stream()` rewritten for the v3.8 spectral WebSocket. It now
+  takes `channels` (e.g. `['VA', 'IA']`), `mode` (`cycle_aligned`/`fixed`),
+  `cycles`, `fft_size`, `freq_min`, `freq_max`, and `include_phase` instead of
+  the old `device_id`/`phase`/`update_rate` params (the stream is a broadcast
+  consumer, not per-device). Binary messages are now pure Arrow IPC windows
+  (yielded as `pyarrow.Table` with per-window metadata in `schema.metadata`);
+  text messages remain JSON gap markers.
+- Bundled tutorials `03-backend-api` and `04-live-streaming` updated to
+  `GatewayClient`, the new spectral API, the `{"files": [...]}` list-files
+  envelope, and the spectral control protocol (`set_channels`, `set_mode`, ...).
+- `analysis/ai-event-analysis` notebook updated to the v3.8 RAG API: endpoints
+  are under `/api/v1` (`/api/v1/query`, `/api/v1/health`), the request field is
+  `text` (was `query`), and the answer is read from `content` with metadata
+  `route_taken`/`model_used`/`tokens_used`. The report cell now generates its
+  report through `/api/v1/query` since the standalone `/report` endpoint is not
+  exposed by the RAG server. Switched off the deprecated `SynapseClient`.
+- `tutorials/01-parquet-files` notebook: brand text updated from "EQ Synapse" to
+  "EQ Wave"/"EQ gateway".
+
 ## [0.0.4] - 2026-05-02
 
 ### Changed

@@ -37,70 +37,21 @@ class TestGatewayClient:
         assert not client.base_url.endswith('/')
 
 
-class TestSynapseClientAlias:
-    """Regression coverage for the deprecated SynapseClient alias.
+class TestSynapseClientRemoved:
+    """The deprecated SynapseClient alias was removed in the v3.8 clean break.
 
-    SynapseClient was the original class name from the EQ Synapse / EQ Watch
-    era. The class is now named GatewayClient (addresses one EQ gateway over
-    REST). SynapseClient is preserved as a deprecated module-level alias so
-    existing user code keeps working; importing it emits a DeprecationWarning
-    so users see the migration signal.
+    Accessing it from either module path must now fail rather than silently
+    resolve to GatewayClient.
     """
 
-    def test_alias_emits_deprecation_warning_on_client_module(self):
-        import warnings
+    def test_alias_removed_from_client_module(self):
         import equser.api.client as api_client
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always", DeprecationWarning)
-            cls = api_client.__getattr__('SynapseClient')
-        assert cls is api_client.GatewayClient
-        assert any(
-            issubclass(w.category, DeprecationWarning) and 'SynapseClient' in str(w.message)
-            for w in caught
-        ), "Importing SynapseClient should emit a DeprecationWarning"
+        with pytest.raises(AttributeError):
+            _ = api_client.SynapseClient
 
-    def test_alias_emits_deprecation_warning_on_package(self):
-        import warnings
-        import equser.api as api
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always", DeprecationWarning)
-            cls = api.__getattr__('SynapseClient')
-        assert cls is api.GatewayClient
-        assert any(
-            issubclass(w.category, DeprecationWarning) and 'SynapseClient' in str(w.message)
-            for w in caught
-        ), "Importing SynapseClient from equser.api should emit a DeprecationWarning"
-
-    def test_alias_is_gateway_client(self):
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            from equser.api.client import GatewayClient, SynapseClient
-        assert SynapseClient is GatewayClient
-
-    def test_alias_constructible(self):
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            from equser.api.client import SynapseClient
-        client = SynapseClient('http://192.168.10.1:8080')
-        assert client.base_url == 'http://192.168.10.1:8080'
-
-    def test_alias_imports_from_package(self):
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            from equser.api import GatewayClient, SynapseClient
-        assert SynapseClient is GatewayClient
-
-    def test_alias_unknown_attribute_raises(self):
-        import equser.api.client as api_client
-        try:
-            _ = api_client.NotAThing
-        except AttributeError as e:
-            assert 'NotAThing' in str(e)
-        else:
-            raise AssertionError("__getattr__ should raise AttributeError for unknown names")
+    def test_alias_removed_from_package(self):
+        with pytest.raises(ImportError):
+            from equser.api import SynapseClient  # noqa: F401
 
 
 class TestStreaming:

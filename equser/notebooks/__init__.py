@@ -49,6 +49,23 @@ def _package_dir() -> Path:
     return Path(str(ref))
 
 
+def get_notebooks_dir() -> Path:
+    """Return the absolute path to the bundled notebooks directory.
+
+    Useful for locating the notebooks inside an installed package (for example
+    to open them in JupyterLab without hunting through ``site-packages``)::
+
+        from equser.notebooks import get_notebooks_dir
+        print(get_notebooks_dir())
+
+    For a writable copy in your working directory, use :func:`copy_notebooks`.
+
+    Returns:
+        Absolute :class:`~pathlib.Path` to the ``equser/notebooks`` directory.
+    """
+    return _package_dir()
+
+
 def list_notebooks() -> list[str]:
     """Return a sorted list of notebook paths relative to the package.
 

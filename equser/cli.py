@@ -6,7 +6,9 @@ Usage:
     equser plot data.parquet [--pmon|--cpow]
     equser snapshot [--host HOST] [--duration SEC] [--output FILE]
     equser notebooks list
+    equser notebooks path [NAME]
     equser notebooks copy [--dest DIR] [--overwrite]
+    equser notebooks launch [--dest DIR] [--no-browser]
 """
 
 import sys
@@ -97,6 +99,39 @@ def main(argv: Sequence[str] | None = None) -> int:
     nb_sub = nb_parser.add_subparsers(dest='nb_action', help='Notebook commands')
 
     nb_sub.add_parser('list', help="List available notebooks")
+
+    nb_path = nb_sub.add_parser(
+        'path',
+        help="Print the path to the bundled notebooks directory (or one notebook)",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_path.add_argument(
+        'name',
+        nargs='?',
+        default=None,
+        help="Optional notebook relative path (e.g. tutorials/01-parquet-files.ipynb)",
+    )
+
+    nb_launch = nb_sub.add_parser(
+        'launch',
+        help="Copy notebooks to a directory and open JupyterLab there",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_launch.add_argument(
+        '--dest',
+        default='./equser-notebooks',
+        help="Destination directory",
+    )
+    nb_launch.add_argument(
+        '--overwrite',
+        action='store_true',
+        help="Overwrite existing files",
+    )
+    nb_launch.add_argument(
+        '--no-browser',
+        action='store_true',
+        help="Do not open a browser window",
+    )
 
     nb_copy = nb_sub.add_parser(
         'copy',
@@ -246,6 +281,36 @@ def _handle_notebooks(args) -> int:
             print(nb)
         return 0
 
+    if args.nb_action == 'path':
+        from equser.notebooks import get_notebook_path, get_notebooks_dir
+
+        if args.name:
+            try:
+                print(get_notebook_path(args.name))
+            except FileNotFoundError as exc:
+                print(exc)
+                return 1
+        else:
+            print(get_notebooks_dir())
+        return 0
+
+    if args.nb_action == 'launch':
+        import shutil as _shutil
+        import subprocess
+
+        copied = copy_notebooks(args.dest, overwrite=args.overwrite)
+        print(f"Notebooks available in {args.dest} ({len(copied)} file(s) copied).")
+
+        if _shutil.which('jupyter') is None:
+            print("JupyterLab not found. Install it with: pip install 'equser[jupyter]'")
+            print(f"Then run: jupyter lab {args.dest}")
+            return 1
+
+        cmd = ['jupyter', 'lab', args.dest]
+        if args.no_browser:
+            cmd.append('--no-browser')
+        return subprocess.call(cmd)
+
     if args.nb_action == 'copy':
         copied = copy_notebooks(
             args.dest,
@@ -261,7 +326,7 @@ def _handle_notebooks(args) -> int:
         return 0
 
     # No sub-action given; print help
-    print("Usage: equser notebooks {list,copy}")
+    print("Usage: equser notebooks {list,path,copy,launch}")
     return 0
 
 

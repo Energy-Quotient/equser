@@ -69,7 +69,7 @@ class GatewayClient:
         url = self.base_url + '/api/v1/devices'
         resp = requests.get(url, timeout=min(self.timeout, 30))
         resp.raise_for_status()
-        return resp.json()
+        return resp.json()['devices']
 
     def get_events(self, device_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         """Fetch recent power quality events.
@@ -87,7 +87,7 @@ class GatewayClient:
             params["device_id"] = device_id
         resp = requests.get(url, params=params, timeout=min(self.timeout, 30))
         resp.raise_for_status()
-        return resp.json()
+        return resp.json()['events']
 
     def get_pmon_data(self, device_id: str, **params: Any) -> pa.Table:
         """Fetch power monitor data for a device.
@@ -135,30 +135,3 @@ class GatewayClient:
         resp = requests.post(url, json=body, timeout=self.timeout)
         resp.raise_for_status()
         return resp.json()
-
-
-# Deprecated backward-compatible alias for `GatewayClient`.
-#
-# SynapseClient was the original class name from when the gateway software
-# was branded EQ Synapse (later EQ Watch). The class is now GatewayClient
-# (it addresses one EQ gateway over REST). The old name still resolves so
-# existing user code keeps working, but importing SynapseClient now emits
-# a DeprecationWarning so users see the migration signal.
-#
-# TODO(post-migration): remove this `__getattr__` hook (and references to
-# SynapseClient in `equser.api.__init__` and the docs) once known users
-# (currently BlueField primarily) have migrated. Plan a removal release
-# after at least one minor version with the deprecation warning in place.
-
-def __getattr__(name):
-    if name == 'SynapseClient':
-        import warnings
-        warnings.warn(
-            "SynapseClient is deprecated and will be removed in a future "
-            "release; use GatewayClient instead "
-            "(`from equser.api import GatewayClient`).",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return GatewayClient
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
