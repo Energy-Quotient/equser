@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-06-16
+
 ### Removed
 - Removed the deprecated `SynapseClient` alias and its `__getattr__` hooks from
   `equser.api` and `equser.api.client` (deprecated in 0.0.4). Importing
