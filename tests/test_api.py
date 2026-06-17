@@ -19,7 +19,7 @@ class TestGatewayClient:
     def test_default_url(self):
         from equser.api.client import GatewayClient
         client = GatewayClient()
-        assert client.base_url == 'http://localhost:8080'
+        assert client.base_url == 'http://localhost'
 
     def test_custom_url(self):
         from equser.api.client import GatewayClient

@@ -18,7 +18,7 @@ import pyarrow as pa
 import pyarrow.ipc as ipc
 import websocket
 
-DEFAULT_GATEWAY_URL = "http://localhost:8080"
+DEFAULT_GATEWAY_URL = "http://localhost"
 
 CPOW_FRAME_HEADER_LEN = 11
 CPOW_FRAME_MAGIC = 0x01
@@ -34,7 +34,7 @@ def connect_cpow_stream(
     JSON gap markers of the form ``{"type": "gap", "skipped_samples": N}``.
 
     Args:
-        gateway_url: Base URL (default: http://localhost:8080).
+        gateway_url: Base URL (default: http://localhost).
             The scheme is changed to ws:// automatically.
 
     Yields:
@@ -97,7 +97,7 @@ def connect_spectral_stream(
         freq_min: Minimum frequency in Hz (default 0).
         freq_max: Maximum frequency in Hz (default 3000).
         include_phase: Include per-bin phase columns alongside magnitudes.
-        gateway_url: Base URL (default: http://localhost:8080).
+        gateway_url: Base URL (default: http://localhost).
             The scheme is changed to ws:// automatically.
 
     Yields:

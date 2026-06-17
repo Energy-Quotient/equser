@@ -104,7 +104,7 @@ wf_plotter.plot_file('cpow_data.parquet')
 ```python
 from equser.api import GatewayClient
 
-client = GatewayClient('http://gateway:8080')
+client = GatewayClient('http://gateway')
 devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
 ```

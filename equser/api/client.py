@@ -11,7 +11,10 @@ import pyarrow as pa
 import pyarrow.ipc as ipc
 import requests
 
-DEFAULT_GATEWAY_URL = "http://localhost:8080"
+# The gateway's nginx serves the API under /api on the normal HTTP port (it
+# proxies to the backend on :8080 internally). Default to the plain host so
+# clients never need port 8080 opened.
+DEFAULT_GATEWAY_URL = "http://localhost"
 
 
 class GatewayClient:
@@ -23,12 +26,12 @@ class GatewayClient:
     (not yet implemented).
 
     Args:
-        gateway_url: Base URL of the gateway (default: http://localhost:8080).
+        gateway_url: Base URL of the gateway (default: http://localhost).
         timeout: Default request timeout in seconds (default: 60).
 
     Example::
 
-        client = GatewayClient('http://192.168.10.1:8080')
+        client = GatewayClient('http://192.168.10.1')
         devices = client.list_devices()
         table = client.get_pmon_data(devices[0]['id'])
     """
@@ -115,7 +118,7 @@ class GatewayClient:
 
     def query_sql(
         self, query: str, device_id: str | None = None, limit: int | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> pa.Table:
         """Execute a SELECT query via the SQL endpoint.
 
         Args:
@@ -124,7 +127,11 @@ class GatewayClient:
             limit: Optional row limit (server default is 30).
 
         Returns:
-            Parsed JSON response (typically a list of row dicts).
+            PyArrow Table with the query result.
+
+        Note:
+            The server returns the result as Arrow IPC (same wire format as the
+            data endpoints), so this decodes it exactly like ``get_arrow``.
         """
         url = self.base_url + '/api/v1/query/sql'
         body: dict[str, Any] = {"query": query}
@@ -134,4 +141,4 @@ class GatewayClient:
             body["limit"] = limit
         resp = requests.post(url, json=body, timeout=self.timeout)
         resp.raise_for_status()
-        return resp.json()
+        return ipc.open_stream(resp.content).read_all()
