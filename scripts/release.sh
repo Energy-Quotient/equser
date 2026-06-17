@@ -6,7 +6,7 @@
 #   ./scripts/release.sh             # Build and upload to PyPI (production)
 #
 # Prerequisites:
-#   pip install build twine
+#   uv (https://docs.astral.sh/uv/) — build + publish run via uv/uvx
 #
 # Configuration:
 #   Create ~/.pypirc with your API tokens:
@@ -75,11 +75,11 @@ rm -rf dist/ build/ *.egg-info/
 
 # Install/upgrade build tools
 echo_step "Checking build tools..."
-python3 -m pip install --upgrade build twine --quiet
+command -v uv >/dev/null || { echo_error "uv is required (https://docs.astral.sh/uv/)"; exit 1; }
 
 # Build the package
 echo_step "Building package..."
-python3 -m build
+uv build
 
 # Show what was built
 echo_step "Built packages:"
@@ -87,12 +87,12 @@ ls -la dist/
 
 # Verify the package
 echo_step "Verifying package with twine..."
-python3 -m twine check dist/*
+uvx twine check dist/*
 
 # Upload
 if [[ "$USE_TESTPYPI" == true ]]; then
     echo_step "Uploading to TestPyPI..."
-    python3 -m twine upload --repository testpypi dist/*
+    uvx twine upload --repository testpypi dist/*
     echo ""
     echo_step "Package uploaded to TestPyPI!"
     echo "Test installation with:"
@@ -102,7 +102,7 @@ else
     read -p "Upload to production PyPI? [y/N] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        python3 -m twine upload dist/*
+        uvx twine upload dist/*
         echo ""
         echo_step "Package uploaded to PyPI!"
         echo "Install with: pip install equser==${VERSION}"
