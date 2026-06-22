@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-06-22
+
+### Added
+- Bundled top-level `welcome.ipynb` notebook — the entry point for EQ Lab
+  (JupyterLab on a gateway). Checks the environment, shows where CPOW/PMon data
+  lives, runs a small `load_cpow_scaled` + `GatewayClient` example, and links the
+  tutorial/analysis notebooks. Picked up automatically by `describe_notebooks()`
+  and copied by `eq lab install` / `equser notebooks` (category: root).
+
 ## [0.0.5] - 2026-06-16
 
 ### Removed
