@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-07-02
+
+### Fixed
+- `equser plot` now works. It previously raised a `TypeError` on every
+  invocation. `-o/--output` sets the output directory for the generated SVG
+  file(s); without it, plots are written alongside the input file.
+- `equser pmon <cmd>` now forwards option flags (e.g. `-c config.yaml`,
+  `--remove`) to the subcommand instead of rejecting them.
+- CPOW neutral-current (`IN`) scaling. `load_cpow_scaled()` now divides the
+  neutral channel by the neutral-CT ratio (default 30, overridable via a
+  `neutral_ct_ratio` file-metadata key), consistent with the plotter. The
+  loader previously returned `IN` 30x too high. **Behavior change:** `IN`
+  magnitude from `load_cpow_scaled()` is now ~30x smaller for int32 files.
+- The waveform plotter now reads scaling metadata from the Arrow schema (where
+  producer files carry it) rather than the Parquet footer, so int32 waveforms
+  are scaled correctly.
+- `parse_start_time()` accepts ISO 8601 timestamps without a fractional-seconds
+  component.
+- Importing `equser` no longer reconfigures the root logger as a side effect.
+  Logging is opt-in via `equser.utils.logging.configure_logging()` (the CLI
+  enables it automatically).
+
+### Added
+- `equser.data.get_cpow_scales()`: the shared helper that returns the voltage,
+  phase-current, and neutral-current scale factors for a CPOW table. Used by
+  both `load_cpow_scaled()` and the plotters.
+- Continuous integration (lint, tests) and release-time packaging checks.
+
+### Changed
+- `find_zero_crossings()` is vectorized, which is substantially faster on long
+  CPOW records.
+- `equser snapshot` defaults to port 80, matching the `GatewayClient` default.
+
 ## [0.0.7] - 2026-06-22
 
 ### Added
@@ -133,6 +166,7 @@ Initial public release. User toolkit for EQ Wave power quality data.
 - `equser notebooks copy` - Copy reference notebooks to a directory
 - `equser snapshot` - Capture live waveform data to a Parquet file
 
-[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/Energy-Quotient/equser/compare/v0.0.7...v0.0.8
 [0.0.2]: https://github.com/Energy-Quotient/equser/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/Energy-Quotient/equser/releases/tag/v0.0.1
