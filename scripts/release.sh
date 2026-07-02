@@ -85,6 +85,14 @@ uv build
 echo_step "Built packages:"
 ls -la dist/
 
+# Public-safety gate: scan the built artifacts for secrets / internal-only
+# detail before anything is uploaded. Fail closed.
+echo_step "Scanning built artifacts for public-safety issues..."
+if ! python3 scripts/check-public-safe.py --dist; then
+    echo_error "Public-safety scan failed. Aborting release (nothing uploaded)."
+    exit 1
+fi
+
 # Verify the package
 echo_step "Verifying package with twine..."
 uvx twine check dist/*

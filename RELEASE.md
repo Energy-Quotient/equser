@@ -35,6 +35,34 @@ python3 scripts/bump-version.py major   # 0.0.3 -> 1.0.0
 python3 scripts/bump-version.py 0.0.5   # explicit version
 ```
 
+## Public-safety guardrail
+
+`equser` is published to PyPI and its repository is public. It is a **client
+toolkit only** — it must never ship secrets or internal-only detail. The
+following categories belong in the private repos, not here:
+
+- Secrets of any kind (tokens, keys, passwords, connection strings).
+- Internal service, host, mount, and deployment names or paths; internal
+  env-var names; and internal-only ports presented as gateway internals.
+- Internal network topology, internal ticket IDs, retired internal codenames,
+  and internal package/crate names.
+- Unreleased-product roadmap surfaces (types or endpoints that don't ship yet).
+
+The specific patterns are encoded in `scripts/check-public-safe.py` (see below)
+rather than listed here, so this public file is not itself a catalog of them.
+
+`scripts/check-public-safe.py` enforces this. It runs automatically inside
+`scripts/release.sh` (fail-closed, against the built artifacts) and in CI
+(`.github/workflows/ci.yml`, against both the tree and the built artifacts).
+Run it manually any time:
+
+```bash
+python3 scripts/check-public-safe.py          # scan the working tree
+python3 scripts/check-public-safe.py --dist    # scan built dist/ artifacts
+```
+
+Reviewed, intentional matches go in `scripts/public-safe-allow.txt`.
+
 ## Release steps
 
 1. **Land the changes.** All fixes and features for the release should be merged into
