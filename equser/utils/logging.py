@@ -9,6 +9,12 @@ import logging.config
 
 _configured = False
 
+# Attach a NullHandler to the top-level package logger so that merely importing
+# equser never configures logging or reconfigures the host application's root
+# logger. Applications (including the equser CLI) opt in explicitly by calling
+# configure_logging().
+logging.getLogger("equser").addHandler(logging.NullHandler())
+
 
 def configure_logging(level: str = 'INFO', use_color: bool = True) -> None:
     """Configure logging with customizable level and optional color support.
@@ -68,17 +74,16 @@ def configure_logging(level: str = 'INFO', use_color: bool = True) -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Get a logger instance.
+    """Get a logger instance for the given name.
 
-    Configures logging on first call if not already configured.
+    This does not configure logging (that would mutate the host application's
+    root logger as a side effect of import). Call :func:`configure_logging`
+    from your application entry point to enable console output.
 
     Args:
         name: Logger name (typically __name__)
 
     Returns:
-        Configured logger instance
+        Logger instance
     """
-    global _configured
-    if not _configured:
-        configure_logging()
     return logging.getLogger(name)

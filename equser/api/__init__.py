@@ -14,8 +14,11 @@ Usage::
 """
 
 try:
-    from equser.api.client import GatewayClient
-    from equser.api.streaming import connect_cpow_stream, connect_spectral_stream
+    from equser.api.client import GatewayClient  # noqa: F401
+    from equser.api.streaming import (  # noqa: F401
+        connect_cpow_stream,
+        connect_spectral_stream,
+    )
 
     _has_api = True
 except ImportError:

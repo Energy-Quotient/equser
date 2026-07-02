@@ -7,12 +7,15 @@ import pyarrow as pa
 import pytest
 
 from equser.data.cpow import (
-    CHANNELS, NEUTRAL_CT_RATIO, SAMPLE_RATE_HZ,
-    load_cpow, load_cpow_scaled,
+    CHANNELS,
+    NEUTRAL_CT_RATIO,
+    SAMPLE_RATE_HZ,
+    get_cpow_scales,
+    load_cpow,
+    load_cpow_scaled,
 )
-from equser.data.pmon import load_pmon, FIELD_DESCRIPTIONS
-from equser.data.timestamps import parse_start_time, parse_filename_timestamp
-
+from equser.data.pmon import FIELD_DESCRIPTIONS, load_pmon
+from equser.data.timestamps import parse_filename_timestamp, parse_start_time
 
 # --- cpow ---
 
@@ -71,6 +74,42 @@ class TestLoadCpowScaled:
         for ch in CHANNELS:
             assert ch in result
             assert isinstance(result[ch], np.ndarray)
+
+    def test_neutral_scaled_by_ct_ratio(self, sample_cpow_parquet):
+        """IN must be scaled by iscale / NEUTRAL_CT_RATIO, not by iscale alone."""
+        result = load_cpow_scaled(sample_cpow_parquet)
+        raw_in = load_cpow(sample_cpow_parquet)['IN'].to_numpy().astype(np.float64)
+        expected = raw_in * (result['iscale'] / NEUTRAL_CT_RATIO)
+        np.testing.assert_allclose(result['IN'], expected)
+
+
+class TestGetCpowScales:
+    @staticmethod
+    def _int_table():
+        return pa.table({'VA': pa.array([1, 2, 3], type=pa.int32())})
+
+    def test_int_defaults_to_neutral_ct_ratio(self):
+        meta = {b'vscale': b'0.01', b'iscale': b'0.002'}
+        vscale, iscale, neutral = get_cpow_scales(self._int_table(), meta)
+        assert vscale == pytest.approx(0.01)
+        assert iscale == pytest.approx(0.002)
+        assert neutral == pytest.approx(0.002 / NEUTRAL_CT_RATIO)
+
+    def test_metadata_overrides_divisor(self):
+        # A file carrying a "special" neutral divisor overrides the default.
+        meta = {b'iscale': b'0.002', b'neutral_ct_ratio': b'1'}
+        _, iscale, neutral = get_cpow_scales(self._int_table(), meta)
+        assert neutral == pytest.approx(iscale)
+
+    def test_missing_scales_default_to_one(self):
+        vscale, iscale, neutral = get_cpow_scales(self._int_table(), {})
+        assert vscale == 1.0
+        assert iscale == 1.0
+        assert neutral == pytest.approx(1.0 / NEUTRAL_CT_RATIO)
+
+    def test_float_table_is_prescaled(self):
+        table = pa.table({'VA': pa.array([1.0, 2.0], type=pa.float32())})
+        assert get_cpow_scales(table, None) == (1.0, 1.0, 1.0)
 
 
 class TestConstants:
@@ -139,6 +178,11 @@ class TestParseStartTime:
         dt = parse_start_time('2025-01-01T12:30:45.999999Z')
         assert dt.microsecond == 999999
 
+    def test_without_fractional_seconds(self):
+        dt = parse_start_time('2025-06-23T07:50:56Z')
+        assert dt == datetime(2025, 6, 23, 7, 50, 56)
+        assert dt.microsecond == 0
+
 
 class TestParseFilenameTimestamp:
     def test_pmon_format(self):
@@ -150,7 +194,7 @@ class TestParseFilenameTimestamp:
         assert dt == datetime(2025, 6, 23, 7, 50, 56)
 
     def test_full_path(self):
-        dt = parse_filename_timestamp('/var/lib/eq-watch/data/pmon/20250623_0750.parquet')
+        dt = parse_filename_timestamp('/var/lib/eq-coherence/data/pmon/20250623_0750.parquet')
         assert dt == datetime(2025, 6, 23, 7, 50)
 
     def test_no_match(self):

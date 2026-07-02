@@ -51,8 +51,7 @@ def connect_cpow_stream(
                 if len(data) < CPOW_FRAME_HEADER_LEN or data[0] != CPOW_FRAME_MAGIC:
                     continue
                 reader = ipc.open_stream(data[CPOW_FRAME_HEADER_LEN:])
-                for batch in reader:
-                    yield batch
+                yield from reader
             elif opcode == websocket.ABNF.OPCODE_TEXT:
                 yield json.loads(data.decode('utf-8'))
             elif opcode == websocket.ABNF.OPCODE_PING:

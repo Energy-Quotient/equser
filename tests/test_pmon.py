@@ -2,9 +2,8 @@
 
 import pytest
 
-from equser.pmon.errors import DataAcquisitionError, SensorConnectionError, ConfigurationError
-from equser.pmon.dataops import FIELD_DESCRIPTIONS, COLUMN_ENCODING
-
+from equser.pmon.dataops import COLUMN_ENCODING, FIELD_DESCRIPTIONS
+from equser.pmon.errors import ConfigurationError, DataAcquisitionError, SensorConnectionError
 
 # --- errors ---
 
@@ -33,7 +32,7 @@ class TestCreateSchema:
     @pytest.fixture(autouse=True)
     def _check_avro(self):
         try:
-            from avro.schema import RecordSchema
+            from avro.schema import RecordSchema  # noqa: F401
         except ImportError:
             pytest.skip("avro not installed (requires [daq] extra)")
 

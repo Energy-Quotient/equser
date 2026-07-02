@@ -18,9 +18,10 @@ pytestmark = pytest.mark.skipif(not HAS_MATPLOTLIB, reason="matplotlib not insta
 class TestPlottingImports:
     def test_module_imports(self):
         from equser.plotting import (
-            PowerMonitorPlotter, WaveformPlotter,
-            COLOR_SCHEMES, VOLTAGE_CHANNELS, CURRENT_CHANNELS,
-            POWER_CHANNELS, FREQ_CHANNELS, DEFAULT_VISIBLE_CHANNELS,
+            COLOR_SCHEMES,
+            VOLTAGE_CHANNELS,
+            PowerMonitorPlotter,
+            WaveformPlotter,
         )
         assert PowerMonitorPlotter is not None
         assert WaveformPlotter is not None

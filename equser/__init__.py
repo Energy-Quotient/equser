@@ -33,7 +33,7 @@ from equser._version import __version__, __version_info__
 
 # Plotting requires [analysis] extra (matplotlib)
 try:
-    from equser import plotting
+    from equser import plotting  # noqa: F401
 
     _has_plotting = True
 except ImportError:
@@ -41,7 +41,7 @@ except ImportError:
 
 # API client requires [analysis] extra (requests, websocket-client)
 try:
-    from equser import api
+    from equser import api  # noqa: F401
 
     _has_api = True
 except ImportError:

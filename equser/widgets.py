@@ -28,10 +28,10 @@ def create_file_selector(directory, pattern='*.parquet'):
     """
     try:
         import ipywidgets as widgets
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
             "create_file_selector requires ipywidgets.\nInstall with: pip install equser[jupyter]"
-        )
+        ) from exc
 
     files = sorted(Path(directory).glob(pattern))
 

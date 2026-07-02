@@ -1,15 +1,10 @@
 """Tests for equser.core modules (paths, config, system)."""
 
-import os
 from pathlib import Path
 
-import pytest
-import yaml
-
-from equser.core.paths import get_config_path, get_data_dir, EquserPaths
-from equser.core.config import load_config, _deep_merge, get_sensor_address, DEFAULT_CONFIG
-from equser.core.system import format_oserror, OSERROR_DESCRIPTIONS
-
+from equser.core.config import _deep_merge, get_sensor_address, load_config
+from equser.core.paths import EquserPaths, get_config_path, get_data_dir
+from equser.core.system import format_oserror
 
 # --- paths ---
 

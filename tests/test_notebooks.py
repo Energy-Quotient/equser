@@ -24,6 +24,7 @@ class TestListNotebooks:
             "tutorials/02-local-duckdb.ipynb",
             "tutorials/03-backend-api.ipynb",
             "tutorials/04-live-streaming.ipynb",
+            "welcome.ipynb",
         ]
         assert result == expected
 

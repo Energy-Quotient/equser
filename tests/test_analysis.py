@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from equser.analysis.waveform import find_zero_crossings, extract_complete_cycles
+from equser.analysis.waveform import extract_complete_cycles, find_zero_crossings
 
 
 class TestFindZeroCrossings:

@@ -12,7 +12,7 @@ Usage:
 """
 
 import sys
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from argparse import REMAINDER, ArgumentDefaultsHelpFormatter, ArgumentParser
 from collections.abc import Sequence
 
 
@@ -28,6 +28,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
+    # As a CLI application (not a library import) we own logging configuration,
+    # so enable console output here.
+    from equser.utils.logging import configure_logging
+
+    configure_logging()
+
     parser = ArgumentParser(
         prog='equser',
         description="Power quality monitoring and analysis tools",
@@ -42,7 +48,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Power monitoring commands (acquire, convert)",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
-    pmon_parser.add_argument('pmon_args', nargs='*', help="Arguments passed to pmon subcommand")
+    pmon_parser.add_argument(
+        'pmon_args',
+        nargs=REMAINDER,
+        help="Arguments passed to the pmon subcommand (e.g. acquire -c config.yaml)",
+    )
 
     # plot subcommand
     plot_parser = subparsers.add_parser(
@@ -58,7 +68,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         '--cpow', action='store_true', help="Force interpretation as cpow data"
     )
     plot_parser.add_argument(
-        '-o', '--output', help="Output file path (default: display interactively)"
+        '-o',
+        '--output',
+        help="Output directory for the generated SVG file(s) "
+        "(default: alongside the input file)",
     )
 
     # snapshot subcommand
@@ -75,7 +88,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     snapshot_parser.add_argument(
         '--port',
         type=int,
-        default=8080,
+        default=80,
         help="Gateway port",
     )
     snapshot_parser.add_argument(
@@ -233,20 +246,22 @@ def _handle_plot(args) -> int:
             print(f"Error reading file schema: {e}")
             return 1
 
+    output_dir = Path(args.output) if args.output else None
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
     try:
         if data_type == 'pmon':
-            plotter = plotting.PowerMonitorPlotter()
-            plotter.plot_file(str(file_path), output_path=args.output)
-        elif data_type == 'cpow':
-            plotter = plotting.WaveformPlotter()
-            plotter.plot_file(str(file_path), output_path=args.output)
+            plotter = plotting.PowerMonitorPlotter(output_dir=output_dir)
+        else:  # 'cpow'
+            plotter = plotting.WaveformPlotter(output_dir=output_dir)
 
-        if not args.output:
-            # Show interactive plot
-            import matplotlib.pyplot as plt
+        if not plotter.plot_file(str(file_path)):
+            print(f"Error: plotting failed for {file_path} (see logs for details)")
+            return 1
 
-            plt.show()
-
+        dest = output_dir if output_dir is not None else file_path.parent
+        print(f"Wrote plot(s) to {dest}")
         return 0
     except Exception as e:
         print(f"Error plotting: {e}")

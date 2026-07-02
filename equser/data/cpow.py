@@ -24,7 +24,51 @@ CYCLE_START_CHANNELS = ['cycle_start_a', 'cycle_start_b', 'cycle_start_c']
 """Optional v3 cycle-boundary marker columns (one per phase)."""
 
 NEUTRAL_CT_RATIO = 30
-"""Neutral CT is 30x more sensitive than phase CTs in recent installations."""
+"""Default neutral-CT sensitivity ratio.
+
+The neutral CT is more sensitive than the phase CTs, so the same current-scale
+factor (counts to amps for the phase CTs) over-reads the neutral channel by this
+ratio. A file may override it via a ``neutral_ct_ratio`` metadata key (see
+:func:`get_cpow_scales`)."""
+
+
+def get_cpow_scales(
+    table: pa.Table, metadata: dict[bytes, bytes] | None
+) -> tuple[float, float, float]:
+    """Return the voltage, phase-current, and neutral-current scale factors.
+
+    This is the single source of truth for CPOW channel scaling, shared by
+    :func:`load_cpow_scaled` and the plotters so both apply identical scaling.
+
+    - **int32 files**: ``vscale``/``iscale`` come from the producer metadata
+      (defaulting to 1.0 if absent). The neutral scale is ``iscale`` divided by
+      the neutral-CT ratio, which defaults to :data:`NEUTRAL_CT_RATIO` but is
+      overridden by a ``neutral_ct_ratio`` metadata key when the file carries one.
+    - **float files** (legacy, pre-scaled): all three factors are 1.0.
+
+    Args:
+        table: The CPOW PyArrow Table (used to detect int vs. float channels).
+        metadata: The Arrow **schema** metadata dict (bytes keys). Producer files
+            carry scaling here, not in the Parquet footer.
+
+    Returns:
+        ``(vscale, iscale, neutral_iscale)`` as floats.
+    """
+    if not pa.types.is_integer(table['VA'].type):
+        return 1.0, 1.0, 1.0
+
+    meta = metadata or {}
+    vscale = float(meta[b'vscale'].decode()) if b'vscale' in meta else 1.0
+    iscale = float(meta[b'iscale'].decode()) if b'iscale' in meta else 1.0
+
+    divisor = float(NEUTRAL_CT_RATIO)
+    if b'neutral_ct_ratio' in meta:
+        try:
+            divisor = float(meta[b'neutral_ct_ratio'].decode())
+        except (ValueError, AttributeError):
+            pass
+
+    return vscale, iscale, iscale / divisor
 
 
 def load_cpow(file_path: str | Path) -> pa.Table:
@@ -63,8 +107,11 @@ def load_cpow_scaled(file_path: str | Path) -> dict[str, Any]:
 
         - ``table``: the raw PyArrow Table
         - ``VA``, ``VB``, ``VC``: scaled voltage arrays (numpy float64)
-        - ``IA``, ``IB``, ``IC``, ``IN``: scaled current arrays (numpy float64)
-        - ``vscale``, ``iscale``: scaling factors applied (1.0 for float files)
+        - ``IA``, ``IB``, ``IC``: scaled phase-current arrays (numpy float64)
+        - ``IN``: scaled neutral-current array (numpy float64). The neutral CT is
+          more sensitive than the phase CTs, so ``IN`` is scaled by ``iscale``
+          divided by the neutral-CT ratio (see :func:`get_cpow_scales`).
+        - ``vscale``, ``iscale``: phase scaling factors applied (1.0 for float files)
         - ``start_time``: parsed datetime from metadata, or None
         - ``sample_rate``: sample rate in Hz (SAMPLE_RATE_HZ constant)
         - ``schema_version``: integer schema version (3 for current files), or None
@@ -86,15 +133,8 @@ def load_cpow_scaled(file_path: str | Path) -> dict[str, Any]:
     # Producer metadata is carried on the Arrow schema, not the Parquet footer.
     meta = pf.schema_arrow.metadata or {}
 
-    # Determine if scaling is needed by checking column dtype
-    is_int = pa.types.is_integer(table['VA'].type)
-
-    if is_int:
-        vscale = float(meta[b'vscale'].decode()) if b'vscale' in meta else 1.0
-        iscale = float(meta[b'iscale'].decode()) if b'iscale' in meta else 1.0
-    else:
-        vscale = 1.0
-        iscale = 1.0
+    # Channel scale factors (shared with the plotters via get_cpow_scales).
+    vscale, iscale, neutral_iscale = get_cpow_scales(table, meta)
 
     # v3 schema metadata
     schema_version: int | None = None
@@ -120,7 +160,7 @@ def load_cpow_scaled(file_path: str | Path) -> dict[str, Any]:
         'IA': table['IA'].to_numpy(zero_copy_only=False).astype(np.float64) * iscale,
         'IB': table['IB'].to_numpy(zero_copy_only=False).astype(np.float64) * iscale,
         'IC': table['IC'].to_numpy(zero_copy_only=False).astype(np.float64) * iscale,
-        'IN': table['IN'].to_numpy(zero_copy_only=False).astype(np.float64) * iscale,
+        'IN': table['IN'].to_numpy(zero_copy_only=False).astype(np.float64) * neutral_iscale,
         'vscale': vscale,
         'iscale': iscale,
         'sample_rate': SAMPLE_RATE_HZ,

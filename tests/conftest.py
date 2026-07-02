@@ -43,7 +43,10 @@ def sample_pmon_parquet(tmp_path):
 
 @pytest.fixture
 def sample_cpow_parquet(tmp_path):
-    """Create a CPOW Parquet file with int32 data and scaling metadata (~3200 rows = 100ms at 32kHz)."""
+    """Create a CPOW Parquet file with int32 data and scaling metadata.
+
+    ~3200 rows = 100 ms at 32 kHz.
+    """
     n = 3200
     rng = np.random.default_rng(42)
 

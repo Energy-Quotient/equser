@@ -13,10 +13,9 @@ from pathlib import Path
 import matplotlib.dates as mdate
 import matplotlib.pyplot as plt
 import numpy as np
-import pyarrow as pa
 import pyarrow.parquet as pq
 
-from equser.data.cpow import NEUTRAL_CT_RATIO
+from equser.data.cpow import get_cpow_scales
 
 logger = logging.getLogger(__name__)
 
@@ -104,17 +103,20 @@ class PowerMonitorPlotter:
 
     def __init__(
         self,
-        visible_channels: set[str] = DEFAULT_VISIBLE_CHANNELS,
+        visible_channels: set[str] | None = None,
         output_dir: Path | None = None,
     ):
         """
         Initialize power monitor plotter.
 
         Args:
-            visible_channels: Set of channel names to plot
+            visible_channels: Set of channel names to plot (defaults to
+                :data:`DEFAULT_VISIBLE_CHANNELS`)
             output_dir: Optional directory for output plots (default: same as input file)
         """
-        self.visible_channels = visible_channels
+        self.visible_channels = (
+            set(DEFAULT_VISIBLE_CHANNELS) if visible_channels is None else visible_channels
+        )
         self.output_dir = output_dir
 
     def plot_file(self, file_path: str) -> bool:
@@ -316,36 +318,16 @@ class WaveformPlotter:
         """
         logger.info(f"Creating waveform plots for {file_path}")
 
-        # Read the parquet file
-        table = pq.read_table(file_path)
+        # Read the parquet file. Producer scaling metadata is carried on the
+        # Arrow schema (not the Parquet footer), so read it from there.
+        pf = pq.ParquetFile(file_path)
+        table = pf.read()
+        vscale, iscale, neutral_iscale = get_cpow_scales(table, pf.schema_arrow.metadata)
 
-        # Get metadata for scaling
-        parquet_file = pq.ParquetFile(file_path)
-        file_metadata = parquet_file.metadata
-        user_metadata = file_metadata.metadata
-
-        # Check if we need scaling (i.e., if data is I32)
-        is_i32 = pa.types.is_integer(table['VA'].type)
-
-        # Only parse scaling factors if we're dealing with I32 data
-        if is_i32 and user_metadata:
-            vscale_raw = user_metadata.get(b'vscale')
-            iscale_raw = user_metadata.get(b'iscale')
-            vscale = float(vscale_raw.decode()) if vscale_raw else 1.0
-            iscale = float(iscale_raw.decode()) if iscale_raw else 1.0
-        else:
-            vscale = 1.0
-            iscale = 1.0
-
-        # Helper functions to apply scaling if needed
-        if is_i32:
-            scale_voltage = lambda data: data.to_numpy() * vscale
-            scale_current = lambda data: data.to_numpy() * iscale
-            scale_neutral_current = lambda data: data.to_numpy() * (iscale / NEUTRAL_CT_RATIO)
-        else:
-            scale_voltage = lambda data: data.to_numpy()
-            scale_current = lambda data: data.to_numpy()
-            scale_neutral_current = lambda data: data.to_numpy()
+        # Helper functions to apply scaling (factors are 1.0 for pre-scaled floats)
+        scale_voltage = lambda data: data.to_numpy() * vscale
+        scale_current = lambda data: data.to_numpy() * iscale
+        scale_neutral_current = lambda data: data.to_numpy() * neutral_iscale
 
         # Calculate sample slice
         start_sample = int(start_sec * self.SAMPLE_RATE)

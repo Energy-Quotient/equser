@@ -45,7 +45,7 @@ CPOW_FRAME_MAGIC = 0x01
 
 def capture(
     host: str = "localhost",
-    port: int = 8080,
+    port: int = 80,
     duration: float = 5.0,
     output: Path | None = None,
 ) -> Path:
@@ -53,7 +53,8 @@ def capture(
 
     Args:
         host: Gateway hostname or IP (default: ``'localhost'``).
-        port: Gateway port (default: ``8080``).
+        port: Gateway port (default: ``80`` — the gateway proxies ``/api`` on the
+            normal HTTP port, matching the ``GatewayClient`` default).
         duration: Capture duration in seconds (default: ``5.0``).
         output: Output parquet file path. If ``None``, a timestamped
             filename is generated in the current directory.
@@ -155,8 +156,8 @@ def main(argv=None):
     parser.add_argument(
         "--port",
         type=int,
-        default=8080,
-        help="Gateway port (default: 8080)",
+        default=80,
+        help="Gateway port (default: 80)",
     )
     parser.add_argument(
         "--duration",

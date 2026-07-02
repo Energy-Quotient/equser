@@ -80,7 +80,7 @@ def main():
     print("Next steps:")
     print(f"  1. Update CHANGELOG.md with changes for v{new_version}")
     print(f"  2. Commit: git commit -am 'Bump version to {new_version}'")
-    print(f"  3. Release: ./scripts/release.sh")
+    print("  3. Release: ./scripts/release.sh")
 
 
 if __name__ == "__main__":

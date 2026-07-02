@@ -28,9 +28,10 @@ def parse_start_time(start_time_str: str) -> datetime:
         date_part, frac_part = start_time_str.split('.')
         # Truncate to 6 digits (microseconds) for Python datetime
         frac_part = frac_part[:6].ljust(6, '0')
-        start_time_str = f"{date_part}.{frac_part}"
+        return datetime.strptime(f"{date_part}.{frac_part}", '%Y-%m-%dT%H:%M:%S.%f')
 
-    return datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M:%S.%f')
+    # No fractional-seconds component (e.g. 2025-06-23T07:50:56)
+    return datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M:%S')
 
 
 _FILENAME_RE = re.compile(r'(\d{8})_(\d{6}|\d{4})')

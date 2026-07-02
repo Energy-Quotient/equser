@@ -30,19 +30,25 @@ def find_zero_crossings(
         - ``crossing_times``: interpolated times of zero crossings
         - ``crossing_indices``: integer indices of the sample just before each crossing
     """
-    crossings = []
-    crossing_indices = []
+    s = np.asarray(signal)
+    t = np.asarray(time_array)
 
-    for i in range(len(signal) - 1):
-        if signal[i] < 0 and signal[i + 1] >= 0:
-            if signal[i + 1] != signal[i]:
-                t_cross = time_array[i] + (time_array[i + 1] - time_array[i]) * (-signal[i]) / (
-                    signal[i + 1] - signal[i]
-                )
-                crossings.append(t_cross)
-                crossing_indices.append(i)
+    # Negative-to-positive crossings: sample i is < 0 and sample i+1 is >= 0.
+    idx = np.nonzero((s[:-1] < 0) & (s[1:] >= 0))[0]
+    if idx.size == 0:
+        return np.empty(0, dtype=np.float64), np.empty(0, dtype=np.intp)
 
-    return np.array(crossings), np.array(crossing_indices, dtype=np.intp)
+    s0 = s[idx].astype(np.float64)
+    s1 = s[idx + 1].astype(np.float64)
+    t0 = t[idx].astype(np.float64)
+    t1 = t[idx + 1].astype(np.float64)
+
+    # Linear interpolation to the crossing time. Because s0 < 0 <= s1, the
+    # denominator (s1 - s0) is strictly positive, so no divide-by-zero guard
+    # is needed.
+    crossing_times = t0 + (t1 - t0) * (-s0) / (s1 - s0)
+
+    return crossing_times, idx.astype(np.intp)
 
 
 def extract_complete_cycles(
@@ -127,10 +133,10 @@ def plot_extracted_cycles(
     """
     try:
         import matplotlib.pyplot as plt
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
             "plot_extracted_cycles requires matplotlib.\nInstall with: pip install equser[analysis]"
-        )
+        ) from exc
     from datetime import datetime, timedelta
 
     if isinstance(signal_dict, (list, np.ndarray)):
@@ -163,7 +169,9 @@ def plot_extracted_cycles(
     if len(cycles_data) == 1:
         axes = [axes]
 
-    for i, (ax, (cycle_time, _, actual_start, actual_end)) in enumerate(zip(axes, cycles_data)):
+    for i, (ax, (cycle_time, _, actual_start, actual_end)) in enumerate(
+        zip(axes, cycles_data, strict=False)
+    ):
         nominal_period = 1 / 60
         time_pu = cycle_time / nominal_period
 
@@ -206,15 +214,15 @@ def plot_extracted_cycles(
 
     if len(axes) > 1:
         d = 0.3
-        kwargs = dict(
-            marker=[(d, -1), (-d, 1)],
-            markersize=8,
-            linestyle="none",
-            color='k',
-            mec='k',
-            mew=1,
-            clip_on=False,
-        )
+        kwargs = {
+            'marker': [(d, -1), (-d, 1)],
+            'markersize': 8,
+            'linestyle': "none",
+            'color': 'k',
+            'mec': 'k',
+            'mew': 1,
+            'clip_on': False,
+        }
         for i in range(len(axes) - 1):
             axes[i].plot([1, 1], [0, 1], transform=axes[i].transAxes, **kwargs)
             axes[i + 1].plot([0, 0], [0, 1], transform=axes[i + 1].transAxes, **kwargs)
@@ -222,7 +230,7 @@ def plot_extracted_cycles(
     fig.text(0.5, 0.02, 'Time Offset [pu cycle, 60 Hz base]', ha='center', fontsize=12)
     axes[0].set_ylabel('Voltage (V)')
 
-    def _ms_to_timestamp(epoch_start, time_seconds):
+    def _seconds_to_timestamp(epoch_start, time_seconds):
         if isinstance(epoch_start, (int, float)):
             start_dt = datetime.fromtimestamp(epoch_start)
         else:
@@ -230,9 +238,9 @@ def plot_extracted_cycles(
         target = start_dt + timedelta(seconds=time_seconds)
         return target.strftime('%H:%M:%S.%f')[:-3]
 
-    for i, (ax, (_, _, actual_start, actual_end)) in enumerate(zip(axes, cycles_data)):
+    for ax, (_, _, actual_start, _) in zip(axes, cycles_data, strict=False):
         if epoch_start_time:
-            start_ts = _ms_to_timestamp(epoch_start_time, actual_start)
+            start_ts = _seconds_to_timestamp(epoch_start_time, actual_start)
             label_text = f'Window @\n{start_ts}'
         else:
             label_text = f'Window @\n{actual_start:.6f}s'
@@ -245,7 +253,7 @@ def plot_extracted_cycles(
             ha='center',
             va='top',
             fontsize=10,
-            bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue'),
+            bbox={'boxstyle': 'round,pad=0.3', 'facecolor': 'lightblue'},
         )
 
     return fig, axes, window_times

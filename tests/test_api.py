@@ -4,13 +4,12 @@ Requires requests (``[analysis]`` extra). HTTP calls are tested via
 construction/URL building only (no actual network calls).
 """
 
+import importlib.util
+
 import pytest
 
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
+HAS_REQUESTS = importlib.util.find_spec("requests") is not None
+HAS_WEBSOCKET = importlib.util.find_spec("websocket") is not None  # websocket-client
 
 pytestmark = pytest.mark.skipif(not HAS_REQUESTS, reason="requests not installed")
 
@@ -54,6 +53,7 @@ class TestSynapseClientRemoved:
             from equser.api import SynapseClient  # noqa: F401
 
 
+@pytest.mark.skipif(not HAS_WEBSOCKET, reason="websocket-client not installed")
 class TestStreaming:
     def test_module_importable(self):
         from equser.api.streaming import connect_cpow_stream, connect_spectral_stream
