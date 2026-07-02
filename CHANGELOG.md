@@ -51,17 +51,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   envelope, and the spectral control protocol (`set_channels`, `set_mode`, ...).
 - `analysis/ai-event-analysis` notebook updated to the v3.8 RAG API: endpoints
   are under `/api/v1` (`/api/v1/query`, `/api/v1/health`), the request field is
-  `text` (was `query`), and the answer is read from `content` with metadata
-  `route_taken`/`model_used`/`tokens_used`. The report cell now generates its
-  report through `/api/v1/query` since the standalone `/report` endpoint is not
-  exposed by the RAG server. Switched off the deprecated `SynapseClient`.
-- `tutorials/01-parquet-files` notebook: brand text updated from "EQ Synapse" to
-  "EQ Wave"/"EQ gateway".
+  `text` (was `query`), and the answer is read from `content`. The report cell
+  now generates its report through `/api/v1/query` since the standalone `/report`
+  endpoint is not exposed by the RAG server. Switched off the deprecated
+  `SynapseClient`.
+- `tutorials/01-parquet-files` notebook: brand text updated to "EQ Wave"/"EQ
+  gateway".
 
 ## [0.0.4] - 2026-05-02
 
 ### Changed
-- Renamed `SynapseClient` to `GatewayClient`. The class addresses one EQ gateway over REST; the new name matches the addressing model (the gateway is the unit you connect to). (A future `DatalakeClient` will be added as a sibling for cross-site queries against the server-side aggregated datalake.)
+- Renamed `SynapseClient` to `GatewayClient`. The class addresses one EQ gateway over REST; the new name matches the addressing model (the gateway is the unit you connect to).
 - Updated docstrings and brand text throughout (`equser.api`, `equser.api.streaming`, `equser.snapshot`, `equser.notebooks`, README, CHANGELOG note for v0.0.1) to use "EQ gateway" for the hardware and reference EQ Coherence™ where the gateway-internal software is meant.
 
 ### Deprecated

@@ -59,7 +59,7 @@ def get_data_dir() -> Path:
 
     Resolution order:
     1. EQUSER_DATA_DIR environment variable
-    2. /var/lib/eq-watch/data (system deployment, if exists)
+    2. /var/lib/eq-coherence/data (gateway deployment, if exists)
     3. ~/.local/share/equser (XDG data home)
 
     Returns:
@@ -68,8 +68,8 @@ def get_data_dir() -> Path:
     if data_env := os.environ.get('EQUSER_DATA_DIR'):
         return Path(data_env)
 
-    # System deployment path (used by eq-watch service)
-    system_data = Path('/var/lib/eq-watch/data')
+    # Gateway deployment path (where EQ Coherence writes CPOW/PMon data)
+    system_data = Path('/var/lib/eq-coherence/data')
     if system_data.exists():
         return system_data
 

@@ -18,12 +18,10 @@ DEFAULT_GATEWAY_URL = "http://localhost"
 
 
 class GatewayClient:
-    """Client for the EQ gateway REST API (provided by EQ Coherence™ software at port 8080).
+    """Client for the EQ gateway REST API (provided by EQ Coherence™ software).
 
     Provides typed access to device listing, power monitor data, CPOW data,
-    events, and SQL queries on a single gateway. For server-side cross-site
-    queries against the aggregated datalake, use a future ``DatalakeClient``
-    (not yet implemented).
+    events, and SQL queries on a single gateway.
 
     Args:
         gateway_url: Base URL of the gateway (default: http://localhost).

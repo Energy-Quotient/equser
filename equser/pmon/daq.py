@@ -68,7 +68,6 @@ class PowerMonitor:
             - connect_timeout: Connection timeout in seconds (default: 5)
             - data_timeout: Data reception timeout in seconds (default: 0.6)
         parquet: Parquet file settings dictionary with:
-            - dest: Directory for saving files (default: "/mnt/eqdata/pmon")
             - interval: Interval for new files in seconds (default: 86400)
             - flush_every: Number of rows before buffer flush (default: -1 meaning disabled)
             - compression: Dict with method and level (default: {"method": "ZSTD", "level": 4})

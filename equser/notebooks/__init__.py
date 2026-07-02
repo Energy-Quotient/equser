@@ -22,23 +22,18 @@ Example::
         print(f"{info['path']}: {info['title']}")
 
     # Copy all notebooks to a working directory
-    copy_notebooks('/var/lib/eq-sight/notebooks')
+    copy_notebooks('./equser-notebooks')
 
 CLI usage::
 
     equser notebooks list
-    equser notebooks copy --dest /var/lib/eq-sight/notebooks
+    equser notebooks copy --dest ./equser-notebooks
 """
 
 import json
 import shutil
-import sys
+from importlib.resources import files as _resource_files
 from pathlib import Path
-
-if sys.version_info >= (3, 11):
-    from importlib.resources import files as _resource_files
-else:
-    from importlib.resources import files as _resource_files  # backport in 3.9+
 
 
 def _package_dir() -> Path:
