@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.8] - 2026-07-02
+## [0.8.0] - 2026-07-02
 
 ### Fixed
 - `equser plot` now works. It previously raised a `TypeError` on every
@@ -166,7 +166,7 @@ Initial public release. User toolkit for EQ Wave power quality data.
 - `equser notebooks copy` - Copy reference notebooks to a directory
 - `equser snapshot` - Capture live waveform data to a Parquet file
 
-[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.0.8...HEAD
-[0.0.8]: https://github.com/Energy-Quotient/equser/compare/v0.0.7...v0.0.8
+[Unreleased]: https://github.com/Energy-Quotient/equser/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Energy-Quotient/equser/compare/v0.0.7...v0.8.0
 [0.0.2]: https://github.com/Energy-Quotient/equser/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/Energy-Quotient/equser/releases/tag/v0.0.1
