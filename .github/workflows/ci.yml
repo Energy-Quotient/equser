@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "dev-*", "release/*"]
+  pull_request:
+    branches: [main, "dev-*"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Create virtual environment
+        run: uv venv --python 3.10
+
+      - name: Install package with dev extras
+        run: uv pip install ".[dev]"
+
+      - name: Lint (ruff)
+        run: uv run ruff check equser/ tests/
+
+      - name: Test (pytest)
+        run: uv run pytest
+
+  public-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan working tree for secrets / internal-only detail
+        run: python3 scripts/check-public-safe.py
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build sdist + wheel
+        run: uv build
+
+      - name: Scan built artifacts (what actually ships)
+        run: python3 scripts/check-public-safe.py --dist

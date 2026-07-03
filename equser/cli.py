@@ -1,0 +1,349 @@
+"""Command-line interface for equser.
+
+Usage:
+    equser pmon acquire [-c config.yaml]
+    equser pmon convert file1.avro [--remove]
+    equser plot data.parquet [--pmon|--cpow]
+    equser snapshot [--host HOST] [--duration SEC] [--output FILE]
+    equser notebooks list
+    equser notebooks path [NAME]
+    equser notebooks copy [--dest DIR] [--overwrite]
+    equser notebooks launch [--dest DIR] [--no-browser]
+"""
+
+import sys
+from argparse import REMAINDER, ArgumentDefaultsHelpFormatter, ArgumentParser
+from collections.abc import Sequence
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Main CLI entry point for equser.
+
+    Args:
+        argv: Command line arguments (defaults to sys.argv[1:])
+
+    Returns:
+        Exit code (0 for success)
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
+    # As a CLI application (not a library import) we own logging configuration,
+    # so enable console output here.
+    from equser.utils.logging import configure_logging
+
+    configure_logging()
+
+    parser = ArgumentParser(
+        prog='equser',
+        description="Power quality monitoring and analysis tools",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # pmon subcommand - delegates to equser.pmon
+    pmon_parser = subparsers.add_parser(
+        'pmon',
+        help="Power monitoring commands (acquire, convert)",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    pmon_parser.add_argument(
+        'pmon_args',
+        nargs=REMAINDER,
+        help="Arguments passed to the pmon subcommand (e.g. acquire -c config.yaml)",
+    )
+
+    # plot subcommand
+    plot_parser = subparsers.add_parser(
+        'plot',
+        help="Plot data from Parquet file (requires equser[analysis])",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    plot_parser.add_argument('file', help="Path to Parquet file to plot")
+    plot_parser.add_argument(
+        '--pmon', action='store_true', help="Force interpretation as pmon data"
+    )
+    plot_parser.add_argument(
+        '--cpow', action='store_true', help="Force interpretation as cpow data"
+    )
+    plot_parser.add_argument(
+        '-o',
+        '--output',
+        help="Output directory for the generated SVG file(s) "
+        "(default: alongside the input file)",
+    )
+
+    # snapshot subcommand
+    snapshot_parser = subparsers.add_parser(
+        'snapshot',
+        help="Capture live CPOW waveform data (requires equser[analysis])",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    snapshot_parser.add_argument(
+        '--host',
+        default='localhost',
+        help="Gateway hostname or IP",
+    )
+    snapshot_parser.add_argument(
+        '--port',
+        type=int,
+        default=80,
+        help="Gateway port",
+    )
+    snapshot_parser.add_argument(
+        '--duration',
+        type=float,
+        default=5.0,
+        help="Capture duration in seconds",
+    )
+    snapshot_parser.add_argument(
+        '--output',
+        default=None,
+        help="Output parquet file path",
+    )
+
+    # notebooks subcommand
+    nb_parser = subparsers.add_parser(
+        'notebooks',
+        help="List or copy bundled reference notebooks",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_sub = nb_parser.add_subparsers(dest='nb_action', help='Notebook commands')
+
+    nb_sub.add_parser('list', help="List available notebooks")
+
+    nb_path = nb_sub.add_parser(
+        'path',
+        help="Print the path to the bundled notebooks directory (or one notebook)",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_path.add_argument(
+        'name',
+        nargs='?',
+        default=None,
+        help="Optional notebook relative path (e.g. tutorials/01-parquet-files.ipynb)",
+    )
+
+    nb_launch = nb_sub.add_parser(
+        'launch',
+        help="Copy notebooks to a directory and open JupyterLab there",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_launch.add_argument(
+        '--dest',
+        default='./equser-notebooks',
+        help="Destination directory",
+    )
+    nb_launch.add_argument(
+        '--overwrite',
+        action='store_true',
+        help="Overwrite existing files",
+    )
+    nb_launch.add_argument(
+        '--no-browser',
+        action='store_true',
+        help="Do not open a browser window",
+    )
+
+    nb_copy = nb_sub.add_parser(
+        'copy',
+        help="Copy notebooks to a directory",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    nb_copy.add_argument(
+        '--dest',
+        default='.',
+        help="Destination directory",
+    )
+    nb_copy.add_argument(
+        '--overwrite',
+        action='store_true',
+        help="Overwrite existing files",
+    )
+    nb_copy.add_argument(
+        '--category',
+        choices=['tutorials', 'analysis'],
+        default=None,
+        help="Copy only a specific category",
+    )
+
+    # Try to enable argcomplete if available
+    try:
+        from argcomplete import autocomplete
+
+        autocomplete(parser)
+    except ImportError:
+        pass
+
+    args = parser.parse_args(argv)
+
+    if not args.command:
+        parser.print_help()
+        return 0
+
+    if args.command == 'pmon':
+        from equser.pmon import main as pmon_main
+
+        return pmon_main(args.pmon_args) or 0
+
+    if args.command == 'plot':
+        return _handle_plot(args)
+
+    if args.command == 'snapshot':
+        return _handle_snapshot(args)
+
+    if args.command == 'notebooks':
+        return _handle_notebooks(args)
+
+    return 0
+
+
+def _handle_plot(args) -> int:
+    """Handle the plot subcommand.
+
+    Args:
+        args: Parsed arguments
+
+    Returns:
+        Exit code
+    """
+    try:
+        from equser import plotting
+    except ImportError:
+        print("Error: Plotting requires equser[analysis] to be installed.")
+        print("Install with: pip install 'equser[analysis]'")
+        return 1
+
+    from pathlib import Path
+
+    import pyarrow.parquet as pq
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"Error: File not found: {file_path}")
+        return 1
+
+    # Auto-detect data type from schema if not specified
+    data_type = None
+    if args.pmon:
+        data_type = 'pmon'
+    elif args.cpow:
+        data_type = 'cpow'
+    else:
+        # Try to detect from schema
+        try:
+            schema = pq.read_schema(file_path)
+            field_names = [f.name for f in schema]
+            if 'FREQ' in field_names and 'AVRMS' in field_names:
+                data_type = 'pmon'
+            elif 'VA' in field_names or 'IA' in field_names:
+                data_type = 'cpow'
+            else:
+                print("Warning: Could not auto-detect data type. Use --pmon or --cpow.")
+                return 1
+        except Exception as e:
+            print(f"Error reading file schema: {e}")
+            return 1
+
+    output_dir = Path(args.output) if args.output else None
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if data_type == 'pmon':
+            plotter = plotting.PowerMonitorPlotter(output_dir=output_dir)
+        else:  # 'cpow'
+            plotter = plotting.WaveformPlotter(output_dir=output_dir)
+
+        if not plotter.plot_file(str(file_path)):
+            print(f"Error: plotting failed for {file_path} (see logs for details)")
+            return 1
+
+        dest = output_dir if output_dir is not None else file_path.parent
+        print(f"Wrote plot(s) to {dest}")
+        return 0
+    except Exception as e:
+        print(f"Error plotting: {e}")
+        return 1
+
+
+def _handle_snapshot(args) -> int:
+    """Handle the snapshot subcommand."""
+    from pathlib import Path
+
+    from equser.snapshot import capture
+
+    output = Path(args.output) if args.output else None
+    try:
+        capture(args.host, args.port, args.duration, output)
+        return 0
+    except Exception as exc:
+        print(f"Error: {exc}")
+        return 1
+
+
+def _handle_notebooks(args) -> int:
+    """Handle the notebooks subcommand."""
+    from equser.notebooks import copy_notebooks, list_notebooks
+
+    if args.nb_action == 'list':
+        notebooks = list_notebooks()
+        if not notebooks:
+            print("No notebooks found in package.")
+            return 1
+        for nb in notebooks:
+            print(nb)
+        return 0
+
+    if args.nb_action == 'path':
+        from equser.notebooks import get_notebook_path, get_notebooks_dir
+
+        if args.name:
+            try:
+                print(get_notebook_path(args.name))
+            except FileNotFoundError as exc:
+                print(exc)
+                return 1
+        else:
+            print(get_notebooks_dir())
+        return 0
+
+    if args.nb_action == 'launch':
+        import shutil as _shutil
+        import subprocess
+
+        copied = copy_notebooks(args.dest, overwrite=args.overwrite)
+        print(f"Notebooks available in {args.dest} ({len(copied)} file(s) copied).")
+
+        if _shutil.which('jupyter') is None:
+            print("JupyterLab not found. Install it with: pip install 'equser[jupyter]'")
+            print(f"Then run: jupyter lab {args.dest}")
+            return 1
+
+        cmd = ['jupyter', 'lab', args.dest]
+        if args.no_browser:
+            cmd.append('--no-browser')
+        return subprocess.call(cmd)
+
+    if args.nb_action == 'copy':
+        copied = copy_notebooks(
+            args.dest,
+            overwrite=args.overwrite,
+            category=args.category,
+        )
+        if copied:
+            print(f"Copied {len(copied)} notebook(s) to {args.dest}")
+            for p in copied:
+                print(f"  {p}")
+        else:
+            print("No notebooks copied (files may already exist; use --overwrite to replace).")
+        return 0
+
+    # No sub-action given; print help
+    print("Usage: equser notebooks {list,path,copy,launch}")
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

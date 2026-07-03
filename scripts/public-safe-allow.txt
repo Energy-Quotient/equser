@@ -1,0 +1,9 @@
+# Allowlist for scripts/check-public-safe.py
+#
+# Any source line containing one of the substrings below is skipped by the
+# public-safety scanner. Use this ONLY for reviewed, intentional matches (for
+# example a placeholder token in documentation). Keep the substrings as specific
+# as possible so real leaks are still caught. One substring per line; blank
+# lines and lines starting with '#' are ignored.
+#
+# (Currently empty: the tree scans clean without exceptions.)
