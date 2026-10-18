@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `GatewayClient.get_cpow_window()` fetches a CPOW window of any length. The
+  data endpoint caps one response near 20 s, so the window is requested in
+  chunks of at most `chunk_s` seconds (default 15), concatenated and sorted by
+  `ts`. Start and end accept epoch seconds or datetimes, and `channels`
+  selects columns. It raises `ValueError` when the window is empty or a
+  requested channel is missing.
+- `GatewayClient.get_cpow_scales()` returns the `vscale`/`iscale` factors (and
+  the rest of the file's Arrow schema metadata, such as `gateway_id` and
+  `schema_version`) that the CPOW data endpoint omits. It reads them over the
+  SQL endpoint from the second-newest CPOW file, since the newest may still be
+  open. For files that store int32 counts, dividing the endpoint's physical
+  values by these scales recovers those counts.
+
 ## [0.8.0] - 2026-07-02
 
 ### Fixed

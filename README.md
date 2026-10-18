@@ -107,6 +107,12 @@ from equser.api import GatewayClient
 client = GatewayClient('http://gateway')
 devices = client.list_devices()
 table = client.get_pmon_data(devices[0]['id'])
+
+# A CPOW window of any length (fetched in chunks the server will serve)
+from datetime import datetime, timedelta, timezone
+end = datetime.now(timezone.utc) - timedelta(minutes=1)
+cpow = client.get_cpow_window('default', end - timedelta(seconds=60), end, channels=['VA', 'IA'])
+scales = client.get_cpow_scales()  # {'vscale': ..., 'iscale': ..., 'gateway_id': ..., ...}
 ```
 
 ### Command Line
