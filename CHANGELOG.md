@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-17
+
 ### Added
 - `GatewayClient.get_cpow_window()` fetches a CPOW window of any length. The
   data endpoint caps one response near 20 s, so the window is requested in
