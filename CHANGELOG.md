@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `GatewayClient.get_cpow_window()` retries a chunk once when the gateway returns a
+  5xx or times out, and on a second failure raises `RuntimeError` carrying the
+  server's message. Gateways can fail a query intermittently: a footer-less parquet
+  file left by an unclean shutdown makes it return HTTP 500, and a large store can
+  time it out.
+
 ## [0.9.0] - 2026-10-17
 
 ### Added
