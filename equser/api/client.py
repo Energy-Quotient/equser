@@ -7,6 +7,7 @@ Requires the ``[analysis]`` extra::
 
 import base64
 import math
+import time
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
@@ -23,6 +24,7 @@ DEFAULT_GATEWAY_URL = "http://localhost"
 # The CPOW data endpoint caps one response near 20 s (~640k rows at 32 kHz), so
 # longer windows are fetched in chunks no larger than this.
 DEFAULT_CPOW_CHUNK_S = 15.0
+CPOW_RETRY_DELAY_S = 2.0  # pause before retrying a failed window chunk
 
 # Where the gateway writes CPOW Parquet files (read by get_cpow_scales via SQL).
 CPOW_DATA_GLOB = '/var/lib/eq-coherence/data/cpow/*.parquet'
@@ -185,7 +187,7 @@ class GatewayClient:
         for i in range(n_chunks):
             a = t0 + i * chunk_s
             b = min(a + chunk_s, t1)
-            chunk = self._get_arrow(endpoint, {'start_time': _iso_utc(a), 'end_time': _iso_utc(b)})
+            chunk = self._get_cpow_chunk(endpoint, a, b)
             if chunk.num_rows:
                 tables.append(chunk.replace_schema_metadata(None))
 
@@ -206,6 +208,35 @@ class GatewayClient:
             table = table.select(['ts'] + [c for c in channels if c != 'ts'])
 
         return table.sort_by('ts')
+
+    def _get_cpow_chunk(self, endpoint: str, a: float, b: float) -> pa.Table:
+        """Fetch one window chunk, retrying once on a server error or timeout.
+
+        Gateways can fail a query intermittently: a footer-less parquet file
+        left by an unclean shutdown makes the server's query fail with HTTP
+        500, and a large store can time a query out. One retry absorbs a
+        transient failure; a second failure raises with the server's message.
+        """
+        params = {'start_time': _iso_utc(a), 'end_time': _iso_utc(b)}
+        last: Exception | None = None
+        for attempt in range(2):
+            try:
+                return self._get_arrow(endpoint, params)
+            except requests.HTTPError as exc:
+                if exc.response is None or exc.response.status_code < 500:
+                    raise
+                last = exc
+            except requests.Timeout as exc:
+                last = exc
+            if attempt == 0:
+                time.sleep(CPOW_RETRY_DELAY_S)
+        detail = ''
+        if isinstance(last, requests.HTTPError) and last.response is not None:
+            detail = f': {last.response.text[:300]}'
+        raise RuntimeError(
+            f"Gateway failed the CPOW query for {params['start_time']} to "
+            f"{params['end_time']} twice ({type(last).__name__}){detail}"
+        ) from last
 
     def get_cpow_scales(self, device_id: str = 'default') -> dict[str, Any]:
         """Read the CPOW scale factors the gateway stores with its Parquet files.

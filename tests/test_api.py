@@ -128,6 +128,52 @@ class TestGetCpowWindow:
             client.get_cpow_window('default', 0, 20, chunk_s=15)
         assert len(calls) == 2
 
+    @staticmethod
+    def _http_error(status, text='boom'):
+        import requests
+        resp = requests.Response()
+        resp.status_code = status
+        resp._content = text.encode()
+        return requests.HTTPError(response=resp)
+
+    def test_server_error_retried_once(self, monkeypatch):
+        import equser.api.client as mod
+        monkeypatch.setattr(mod, 'CPOW_RETRY_DELAY_S', 0)
+        state = {'n': 0}
+
+        def responder(params):
+            state['n'] += 1
+            if state['n'] == 1:
+                raise self._http_error(500)
+            return _cpow_chunk([1, 2])
+
+        client, calls = self._client(monkeypatch, responder)
+        t = client.get_cpow_window('default', 0, 1)
+        assert len(calls) == 2 and t.num_rows == 2
+
+    def test_persistent_server_error_names_cause(self, monkeypatch):
+        import equser.api.client as mod
+        monkeypatch.setattr(mod, 'CPOW_RETRY_DELAY_S', 0)
+
+        def responder(params):
+            raise self._http_error(500, 'No magic bytes found at end of file')
+
+        client, calls = self._client(monkeypatch, responder)
+        with pytest.raises(RuntimeError, match='No magic bytes'):
+            client.get_cpow_window('default', 0, 1)
+        assert len(calls) == 2
+
+    def test_client_error_not_retried(self, monkeypatch):
+        import requests
+
+        def responder(params):
+            raise self._http_error(404)
+
+        client, calls = self._client(monkeypatch, responder)
+        with pytest.raises(requests.HTTPError):
+            client.get_cpow_window('default', 0, 1)
+        assert len(calls) == 1
+
     def test_bad_bounds(self, monkeypatch):
         client, calls = self._client(monkeypatch, lambda p: _cpow_chunk([1]))
         with pytest.raises(ValueError):
