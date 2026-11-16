@@ -126,7 +126,16 @@ equser pmon convert data/*.avro --remove
 
 # Plot data file (requires [analysis])
 equser plot data.parquet
+
+# Give a Wave wired straight to this computer its address (192.168.10.10)
+equser wave-dhcp
 ```
+
+A Wave asks for its address by DHCP and has none until a server answers. On a gateway,
+the gateway answers. On a computer wired straight to the Wave, set the Ethernet adapter
+to 192.168.10.2, mask 255.255.255.0, and run `equser wave-dhcp`; it prints the Wave's
+hostname and address once served, and the Wave answers at 192.168.10.10 from then on.
+It runs on Windows and Linux (with `sudo` on Linux, for port 67).
 
 ## Reference notebooks
 

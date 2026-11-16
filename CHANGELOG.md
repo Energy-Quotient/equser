@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `equser wave-dhcp` gives an EQ Wave wired straight to a computer its address. A Wave
+  with DHCP firmware has no address until a server answers; this one serves the
+  computer's adapter, gives the first Wave 192.168.10.10, and prints each Wave's
+  hostname and address. Standard library only; Windows and Linux.
+
 ### Fixed
 - `GatewayClient.get_cpow_window()` retries a chunk once when the gateway returns a
   5xx or times out, and on a second failure raises `RuntimeError` carrying the

@@ -103,6 +103,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Output parquet file path",
     )
 
+    # wave-dhcp subcommand
+    dhcp_parser = subparsers.add_parser(
+        'wave-dhcp',
+        help="Give a Wave wired straight to this computer an address by DHCP",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    dhcp_parser.add_argument(
+        '--server-ip',
+        default='192.168.10.2',
+        help="This computer's fixed address on the adapter the Wave is on",
+    )
+    dhcp_parser.add_argument(
+        '--first',
+        default='192.168.10.10',
+        help="Address for the first Wave; later ones count up from it",
+    )
+    dhcp_parser.add_argument(
+        '--netmask',
+        default='255.255.255.0',
+        help="Subnet mask of the adapter",
+    )
+
     # notebooks subcommand
     nb_parser = subparsers.add_parser(
         'notebooks',
@@ -195,6 +217,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == 'notebooks':
         return _handle_notebooks(args)
+
+    if args.command == 'wave-dhcp':
+        from equser.wave_dhcp import serve
+
+        return serve(args.server_ip, args.first, args.netmask)
 
     return 0
 
